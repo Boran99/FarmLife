@@ -1,13 +1,15 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { GameState, ToolType, Tile, SeasonType, WeatherType, MarketCandle, OptionType, FinancialOption, OptionHistoryRecord } from './types';
-import { SEASONS, GRID_SIZE, INITIAL_MONEY, CROPS, LAND_COST, WEATHER_CHANCE, WATER_COST, WATER_AMOUNT, MAX_MOISTURE, EVAPORATION_RATE, AREA_CONFIG, GOLDEN_APPLE_ID, GOLDEN_APPLE_FRUIT_ID } from './constants';
+import { GameState, ToolType, Tile, SeasonType, WeatherType, MarketCandle, OptionType, FinancialOption, OptionHistoryRecord, ProcessingJob, AreaUpgradeType, AreaAutomationConfig } from './types';
+import { SEASONS, GRID_SIZE, INITIAL_MONEY, CROPS, LAND_COST, WEATHER_CHANCE, WATER_COST, WATER_AMOUNT, MAX_MOISTURE, EVAPORATION_RATE, AREA_CONFIG, GOLDEN_APPLE_ID, GOLDEN_APPLE_FRUIT_ID, RECIPES, AUTOMATION_COSTS, MONTH_NAMES } from './constants';
 import { Grid } from './components/Grid';
 import { Header, ActionDock } from './components/GameUI';
 import { Almanac } from './components/Almanac';
 import { Shop } from './components/Shop';
 import { Inventory } from './components/Inventory';
 import { StockMarket } from './components/StockMarket';
+import { Factory } from './components/Factory';
+import { FarmOS } from './components/FarmOS';
 import { WeatherOverlay } from './components/WeatherOverlay';
 import { AlertTriangle, Info } from 'lucide-react';
 
@@ -15,30 +17,23 @@ const App: React.FC = () => {
   
   // --- Helper: Generate Candle ---
   const generateCandle = (prevClose: number): MarketCandle => {
-      // Gentler standard fluctuation: -5% to +10% (Bias slightly upwards to encourage long term holding)
       let priceFactor = 0.95 + Math.random() * 0.15; 
-      
       const rand = Math.random();
       
-      // Rare Spike: 5% chance (was 10%) to go up 1.2x - 1.35x
       if (rand < 0.05) {
           priceFactor = 1.2 + Math.random() * 0.15; 
       }
-      // Rare Dip: 5% chance (was 10%) to go down to 0.75x - 0.9x (No more 0.5x crashes)
       else if (rand > 0.95) {
           priceFactor = 0.75 + Math.random() * 0.15; 
       }
       
       let close = Math.floor(prevClose * priceFactor);
-      close = Math.max(2000, Math.min(80000, close)); // Min price 2000 to prevent total worthlessness
+      close = Math.max(2000, Math.min(80000, close));
       
       const open = prevClose;
-      
-      // Generate realistic High/Low based on Open/Close
       const bodyMax = Math.max(open, close);
       const bodyMin = Math.min(open, close);
-      
-      const volatility = bodyMax * 0.15; // Reduced volatility from 0.2 to 0.15
+      const volatility = bodyMax * 0.15;
       const high = Math.floor(bodyMax + Math.random() * volatility);
       const low = Math.floor(Math.max(100, bodyMin - Math.random() * volatility));
 
@@ -54,6 +49,22 @@ const App: React.FC = () => {
       lastPrice = candle.close;
   }
 
+  // --- Initial Automation Config ---
+  const initialAreaAutomation: Record<number, AreaAutomationConfig> = {};
+  AREA_CONFIG.forEach(area => {
+      initialAreaAutomation[area.id] = {
+          areaId: area.id,
+          hasIrrigation: false,
+          irrigationEnabled: true,
+          hasDrone: false,
+          droneEnabled: true,
+          autoSell: false,
+          hasSeeder: false,
+          seederEnabled: true,
+          seederSeedId: null
+      };
+  });
+
   // --- State ---
   const [gameState, setGameState] = useState<GameState>({
     turn: 0,
@@ -63,7 +74,6 @@ const App: React.FC = () => {
     money: INITIAL_MONEY,
     selectedTool: ToolType.NONE,
     selectedSeedId: null,
-    // Initialize 48 tiles (4 Areas x 12)
     grid: Array.from({ length: GRID_SIZE }, (_, i) => ({
       id: i,
       state: 'empty',
@@ -73,10 +83,20 @@ const App: React.FC = () => {
       isWatered: false,
       moisture: 60
     })),
-    inventory: {}, // itemId -> count
-    unlockedAreas: [0], // Start with Area 0
+    inventory: {}, 
+    unlockedAreas: [0], 
     areaNames: { 0: "Main Garden", 1: "East Field", 2: "South Valley", 3: "Golden Orchard" },
     
+    // Automation State
+    areaAutomation: initialAreaAutomation,
+    factoryHoppers: [false, false, false, false],
+    hasConveyor: false,
+
+    // Factory State
+    view: 'FARM',
+    factorySlots: 1,
+    activeJobs: [],
+
     // Market State
     goldenApplePrice: lastPrice,
     marketHistory: initialMarketHistory,
@@ -87,6 +107,7 @@ const App: React.FC = () => {
     isShopOpen: false,
     isInventoryOpen: false,
     isStockMarketOpen: false,
+    isFarmOSOpen: false,
     messages: []
   });
 
@@ -110,9 +131,298 @@ const App: React.FC = () => {
     }));
   };
 
+  // Month Change Toast Effect
+  useEffect(() => {
+      if (gameState.turn > 0) {
+          showToast(`Welcome to ${MONTH_NAMES[gameState.currentMonth - 1]}!`, 'info');
+      }
+  }, [gameState.currentMonth]);
+
+  // --- AUTOMATION HANDLERS ---
+
+  const handleBuyAreaUpgrade = (areaId: number, type: AreaUpgradeType) => {
+      const cost = AUTOMATION_COSTS[type];
+      if (gameState.money < cost) {
+          showToast("Insufficient funds!", 'error');
+          return;
+      }
+      setGameState(prev => {
+          const config = { ...prev.areaAutomation[areaId] };
+          if (type === 'IRRIGATION') config.hasIrrigation = true;
+          if (type === 'DRONE') config.hasDrone = true;
+          if (type === 'SEEDER') config.hasSeeder = true;
+
+          return {
+              ...prev,
+              money: prev.money - cost,
+              areaAutomation: { ...prev.areaAutomation, [areaId]: config }
+          };
+      });
+      showToast(`Installed ${type}!`, 'success');
+  };
+
+  const handleToggleAreaUpgrade = (areaId: number, type: AreaUpgradeType) => {
+      setGameState(prev => {
+          const config = { ...prev.areaAutomation[areaId] };
+          if (type === 'IRRIGATION') config.irrigationEnabled = !config.irrigationEnabled;
+          if (type === 'DRONE') config.droneEnabled = !config.droneEnabled;
+          if (type === 'SEEDER') config.seederEnabled = !config.seederEnabled;
+
+          return {
+              ...prev,
+              areaAutomation: { ...prev.areaAutomation, [areaId]: config }
+          };
+      });
+  };
+
+  const handleSetAreaAutoSell = (areaId: number, enabled: boolean) => {
+      setGameState(prev => ({
+          ...prev,
+          areaAutomation: {
+              ...prev.areaAutomation,
+              [areaId]: { ...prev.areaAutomation[areaId], autoSell: enabled }
+          }
+      }));
+  };
+
+  const handleSetAreaSeederId = (areaId: number, seedId: number | null) => {
+      setGameState(prev => ({
+          ...prev,
+          areaAutomation: {
+              ...prev.areaAutomation,
+              [areaId]: { ...prev.areaAutomation[areaId], seederSeedId: seedId }
+          }
+      }));
+  };
+
+  const handleBuyFactoryUpgrade = (type: 'HOPPER' | 'CONVEYOR', slotIndex?: number) => {
+      const cost = AUTOMATION_COSTS[type];
+      if (gameState.money < cost) {
+          showToast("Insufficient funds!", 'error');
+          return;
+      }
+
+      setGameState(prev => {
+          let updates = {};
+          if (type === 'CONVEYOR') {
+              updates = { hasConveyor: true };
+          } else if (type === 'HOPPER' && slotIndex !== undefined) {
+              const newHoppers = [...prev.factoryHoppers];
+              newHoppers[slotIndex] = true;
+              updates = { factoryHoppers: newHoppers };
+          }
+          return { ...prev, money: prev.money - cost, ...updates };
+      });
+      showToast(`Installed ${type}!`, 'success');
+  };
+
+
+  // --- REAL-TIME FACTORY LOOP & AUTOMATION ---
+  const handleStartJob = useCallback((recipeId: number, forcedSlotIndex?: number) => {
+      // If forcedSlotIndex is provided, use it (for hoppers)
+      // Otherwise find first empty
+      
+      // Need recent state, so we use functional update inside the caller or pass full state?
+      // For cleanliness, we'll do logic inside setState in useEffect or event handler
+      // This function will just trigger the state update
+      
+      setGameState(prev => {
+          const recipe = RECIPES.find(r => r.id === recipeId);
+          if (!recipe) return prev;
+          
+          // Determine slot
+          let slotToUse = forcedSlotIndex;
+          if (slotToUse === undefined) {
+              // Find first empty slot
+              for (let i = 0; i < prev.factorySlots; i++) {
+                  if (!prev.activeJobs.find(j => j.slotIndex === i)) {
+                      slotToUse = i;
+                      break;
+                  }
+              }
+          }
+
+          if (slotToUse === undefined || slotToUse >= prev.factorySlots || prev.activeJobs.find(j => j.slotIndex === slotToUse)) {
+              if (forcedSlotIndex === undefined) showToast("No factory slots available!", 'error'); // Only show toast for manual
+              return prev;
+          }
+
+          const owned = prev.inventory[recipe.inputItemId] || 0;
+          if (owned < recipe.inputCount) {
+              if (forcedSlotIndex === undefined) showToast("Not enough materials.", 'error');
+              return prev;
+          }
+
+          const now = Date.now();
+          const newJob: ProcessingJob = {
+              id: Math.random().toString(36).substr(2, 9),
+              recipeId,
+              slotIndex: slotToUse,
+              startTime: now,
+              endTime: now + (recipe.realTimeSeconds * 1000),
+              isComplete: false
+          };
+
+          if (forcedSlotIndex === undefined) showToast("Production started!", 'success');
+
+          return {
+              ...prev,
+              inventory: {
+                  ...prev.inventory,
+                  [recipe.inputItemId]: owned - recipe.inputCount
+              },
+              activeJobs: [...prev.activeJobs, newJob]
+          };
+      });
+  }, []);
+
+  const handleCollectJob = useCallback((jobId: string) => {
+      setGameState(prev => {
+          const job = prev.activeJobs.find(j => j.id === jobId);
+          if (!job || !job.isComplete) return prev;
+          
+          const recipe = RECIPES.find(r => r.id === job.recipeId);
+          if (!recipe) return prev;
+
+          // Collect Item
+          const newInventory = {
+              ...prev.inventory,
+              [recipe.outputItemId]: (prev.inventory[recipe.outputItemId] || 0) + recipe.outputCount
+          };
+
+          // HOPPER LOGIC: Check if we can restart
+          let nextJobs = prev.activeJobs.filter(j => j.id !== jobId);
+          let inventoryForHopper = newInventory;
+          
+          const hasHopper = prev.factoryHoppers[job.slotIndex];
+          if (hasHopper) {
+               const inputOwned = newInventory[recipe.inputItemId] || 0;
+               if (inputOwned >= recipe.inputCount) {
+                   // Restart!
+                   const now = Date.now();
+                   const autoJob: ProcessingJob = {
+                        id: Math.random().toString(36).substr(2, 9),
+                        recipeId: job.recipeId,
+                        slotIndex: job.slotIndex,
+                        startTime: now,
+                        endTime: now + (recipe.realTimeSeconds * 1000),
+                        isComplete: false
+                   };
+                   nextJobs = [...nextJobs, autoJob];
+                   inventoryForHopper = {
+                       ...newInventory,
+                       [recipe.inputItemId]: inputOwned - recipe.inputCount
+                   };
+                   // Note: Toast might spam, maybe skip it or show "Hopper active"
+               }
+          }
+
+          if (!prev.hasConveyor) showToast(`Collected ${recipe.outputCount} ${CROPS.find(c => c.id === recipe.outputItemId)?.name}!`, 'success');
+
+          return {
+              ...prev,
+              inventory: inventoryForHopper,
+              activeJobs: nextJobs
+          };
+      });
+  }, []);
+
+
+  useEffect(() => {
+      const interval = setInterval(() => {
+          setGameState(prev => {
+              const now = Date.now();
+              let updatesRequired = false;
+              const updatedJobs = prev.activeJobs.map(job => {
+                  if (job.isComplete) return job;
+                  if (now >= job.endTime) {
+                      updatesRequired = true;
+                      return { ...job, isComplete: true };
+                  }
+                  return job;
+              });
+
+              // CONVEYOR LOGIC: Auto-collect finished jobs
+              if (prev.hasConveyor) {
+                  const finishedJobs = updatedJobs.filter(j => j.isComplete);
+                  if (finishedJobs.length > 0) {
+                       // We trigger collect logic here. 
+                       // Since we can't call handleCollectJob (it sets state), we must replicate logic or flag it.
+                       // To avoid complexity, we'll simply allow the NEXT render cycle to catch it via specific check or 
+                       // actually, we can just do it here in the reducer.
+                       
+                       // Let's do a simplified reducer version of collect + hopper here
+                       let currentJobs = updatedJobs;
+                       let currentInventory = { ...prev.inventory };
+                       
+                       // Process all finished jobs
+                       const remainingJobs: ProcessingJob[] = [];
+                       
+                       for (const job of currentJobs) {
+                           if (job.isComplete) {
+                               const recipe = RECIPES.find(r => r.id === job.recipeId);
+                               if (recipe) {
+                                   // 1. Add output
+                                   currentInventory[recipe.outputItemId] = (currentInventory[recipe.outputItemId] || 0) + recipe.outputCount;
+                                   
+                                   // 2. Check Hopper
+                                   const hasHopper = prev.factoryHoppers[job.slotIndex];
+                                   if (hasHopper && (currentInventory[recipe.inputItemId] || 0) >= recipe.inputCount) {
+                                       // Restart
+                                       currentInventory[recipe.inputItemId] -= recipe.inputCount;
+                                       remainingJobs.push({
+                                            id: Math.random().toString(36).substr(2, 9),
+                                            recipeId: job.recipeId,
+                                            slotIndex: job.slotIndex,
+                                            startTime: now,
+                                            endTime: now + (recipe.realTimeSeconds * 1000),
+                                            isComplete: false
+                                       });
+                                       updatesRequired = true;
+                                   } else {
+                                       // No hopper or no mats, job cleared
+                                       updatesRequired = true;
+                                   }
+                               }
+                           } else {
+                               remainingJobs.push(job);
+                           }
+                       }
+                       
+                       if (updatesRequired) {
+                           return { ...prev, inventory: currentInventory, activeJobs: remainingJobs };
+                       }
+                  }
+              }
+              
+              if (updatesRequired) {
+                  return { ...prev, activeJobs: updatedJobs };
+              }
+              return prev;
+          });
+      }, 1000);
+      return () => clearInterval(interval);
+  }, []);
+
+
+  // --- Logic: Factory Manual ---
+  const handleBuyFactorySlot = () => {
+      const cost = 5000 * gameState.factorySlots;
+      if (gameState.money >= cost) {
+          if (gameState.factorySlots >= 4) return;
+          setGameState(prev => ({
+              ...prev,
+              money: prev.money - cost,
+              factorySlots: prev.factorySlots + 1
+          }));
+          showToast("Factory expanded!", 'success');
+      } else {
+          showToast(`Need $${cost} to expand`, 'error');
+      }
+  };
+
   // --- Logic: Stock Options ---
   const handleBuyOption = (type: OptionType) => {
-    // Cost is 1 Golden Apple FRUIT
     const fruitCount = gameState.inventory[GOLDEN_APPLE_FRUIT_ID] || 0;
     if (fruitCount < 1) {
         showToast("Need 1 Golden Apple to pay premium!", 'error');
@@ -123,9 +433,9 @@ const App: React.FC = () => {
         id: Math.random().toString(36).substr(2, 9),
         type,
         strikePrice: gameState.goldenApplePrice,
-        premium: 1, // 1 Apple
-        contractSize: 1, // 1:1 Ratio (Covers 1 Apple)
-        expiryTurn: gameState.turn + 1 // Valid only for the next turn
+        premium: 1, 
+        contractSize: 1, 
+        expiryTurn: gameState.turn + 1 
     };
 
     setGameState(prev => ({
@@ -147,10 +457,8 @@ const App: React.FC = () => {
       let profitPerUnit = 0;
 
       if (option.type === 'CALL') {
-          // Profit = (Market - Strike)
           profitPerUnit = currentPrice - option.strikePrice;
       } else {
-          // Profit = (Strike - Market)
           profitPerUnit = option.strikePrice - currentPrice;
       }
 
@@ -270,7 +578,7 @@ const App: React.FC = () => {
       cumulative += (chance as number);
       if (rand <= cumulative) return type as WeatherType;
     }
-    return 'Sunny'; // Fallback
+    return 'Sunny'; 
   };
 
   // --- Logic: Next Month (Turn) ---
@@ -285,28 +593,22 @@ const App: React.FC = () => {
       if (nextMonth >= 10 && nextMonth <= 12) nextSeason = 'Winter';
 
       const nextWeather = generateWeather(nextSeason);
-
-      // Stock Market Candle Logic
       const newCandle = generateCandle(prev.goldenApplePrice);
       const newMarketHistory = [...prev.marketHistory, newCandle];
       
-      // Trigger Screen Shake if Earthquake
       if (nextWeather === 'Earthquake') {
          setIsShaking(true);
          setTimeout(() => setIsShaking(false), 1000);
          showToast("Earthquake detected! Check for damage.", "error");
       }
 
-      // Option Cleanup: Remove expired
       const survivingOptions = prev.options.filter(opt => opt.expiryTurn >= nextTurn);
       if (prev.options.length > survivingOptions.length) {
           showToast("Some unused options expired.", 'info');
       }
 
-      // History Cleanup: Remove records older than 12 turns
       const validHistory = prev.optionHistory.filter(h => h.turn >= nextTurn - 12);
       
-      // Notify about profitable options
       const profitableCount = survivingOptions.filter(opt => {
          const diff = opt.type === 'CALL' 
             ? newCandle.close - opt.strikePrice 
@@ -318,7 +620,6 @@ const App: React.FC = () => {
           setTimeout(() => showToast(`You have ${profitableCount} profitable options!`, 'success'), 1000);
       }
 
-      // Logic for Earthquake Damage
       const tilesToDamage: number[] = [];
       if (nextWeather === 'Earthquake') {
          const availableTiles = prev.grid.filter(t => {
@@ -326,7 +627,6 @@ const App: React.FC = () => {
             return prev.unlockedAreas.includes(areaId) && !t.isLocked && t.state !== 'damaged';
          });
          const damageCount = Math.random() > 0.7 ? 2 : 1;
-         
          for (let i = 0; i < damageCount; i++) {
             if (availableTiles.length === 0) break;
             const randomIndex = Math.floor(Math.random() * availableTiles.length);
@@ -335,11 +635,52 @@ const App: React.FC = () => {
          }
       }
       
-      const nextGrid = prev.grid.map(tile => {
-        // 0. Locked tiles skip logic
+      // --- FARM AUTOMATION VARIABLES ---
+      let moneyChange = 0;
+      const inventoryChanges: Record<number, number> = { ...prev.inventory };
+      const updatedGrid = prev.grid.map(tile => {
+        // Basic Checks
         if (tile.isLocked) return tile;
 
-        // 1. Handle Damaged Tiles (Recovery)
+        // --- AUTOMATION: DRONE HARVEST (Before Wither/Growth) ---
+        const areaId = Math.floor(tile.id / 12);
+        const automation = prev.areaAutomation[areaId];
+        const crop = CROPS.find(c => c.id === tile.cropId);
+
+        if (automation && automation.hasDrone && automation.droneEnabled && tile.state === 'mature' && crop) {
+             // DRONE ACTION
+             if (automation.autoSell) {
+                 const price = crop.id === GOLDEN_APPLE_ID ? newCandle.close : (CROPS.find(c => c.id === (crop.harvestYieldId || crop.id))?.sellPrice || 0);
+                 moneyChange += price;
+                 return { ...tile, state: 'empty' as const, cropId: null, growthProgress: 0, isWatered: false, note: undefined, shelfLife: 0 };
+             } else {
+                 const yieldId = crop.harvestYieldId || crop.id;
+                 inventoryChanges[yieldId] = (inventoryChanges[yieldId] || 0) + 1;
+                 return { ...tile, state: 'empty' as const, cropId: null, growthProgress: 0, isWatered: false, note: undefined, shelfLife: 0 };
+             }
+        }
+
+        // --- AUTOMATION: SEEDER PLANT (If empty) ---
+        if (automation && automation.hasSeeder && automation.seederEnabled && automation.seederSeedId && tile.state === 'empty' && !tilesToDamage.includes(tile.id)) {
+             const seedId = automation.seederSeedId;
+             const seedCount = inventoryChanges[seedId] || 0;
+             const seedCrop = CROPS.find(c => c.id === seedId);
+             
+             if (seedCount > 0 && seedCrop) {
+                 inventoryChanges[seedId]--;
+                 return { 
+                     ...tile, 
+                     state: 'seeded' as const, 
+                     cropId: seedId, 
+                     growthProgress: 0, 
+                     isWatered: false, 
+                     moisture: Math.max(tile.moisture, 40) 
+                 };
+             }
+        }
+
+        // --- Standard Tile Logic (Recovery, Damage, Wither, Growth) ---
+
         if (tile.state === 'damaged') {
             if (tile.recoveryTime && tile.recoveryTime > 1) {
                 return { ...tile, recoveryTime: tile.recoveryTime - 1 };
@@ -348,56 +689,53 @@ const App: React.FC = () => {
             }
         }
 
-        // 2. Apply Earthquake Damage
         if (tilesToDamage.includes(tile.id)) {
             return { 
                 ...tile, 
                 state: 'damaged' as const, 
-                recoveryTime: 12, // 1 Year to fix
+                recoveryTime: 12, 
                 cropId: null, 
                 growthProgress: 0, 
                 note: 'Destroyed by Earthquake' 
             };
         }
 
-        // 3. Dead/Empty cleanup
         if (tile.state === 'dead' || tile.state === 'empty') {
            return { ...tile, isWatered: false, moisture: Math.max(0, tile.moisture - EVAPORATION_RATE) };
         }
 
-        // 4. Handle Growing/Mature Crops
-        const crop = CROPS.find(c => c.id === tile.cropId);
-        if (!crop) return tile;
+        const currentCrop = CROPS.find(c => c.id === tile.cropId);
+        if (!currentCrop) return tile;
 
-        // Special Logic: Golden Apple Shelf Life (Only affects FRUIT ON TREE, logic unchanged for visual crop)
-        if (tile.state === 'mature' && crop.id === GOLDEN_APPLE_ID) {
+        // Rot Logic
+        if (tile.state === 'mature' && currentCrop.id === GOLDEN_APPLE_ID) {
             const shelfLife = (tile.shelfLife || 0) + 1;
             if (shelfLife > 9) {
                 return { ...tile, state: 'dead' as const, note: 'Rotted (Old Age)', moisture: 0 };
             }
             return { ...tile, shelfLife };
         }
-
-        if (tile.state === 'mature' && crop.id !== GOLDEN_APPLE_ID) {
+        if (tile.state === 'mature' && currentCrop.id !== GOLDEN_APPLE_ID) {
              return { ...tile, state: 'dead' as const, note: 'Crop rotted. Harvest earlier!', moisture: 0 };
         }
 
-        // --- Conditions Check for Growing Crops ---
-        if (nextSeason === 'Winter' && !crop.isColdResistant) {
+        // Weather Kill Logic
+        if (nextSeason === 'Winter' && !currentCrop.isColdResistant) {
           return { 
              ...tile, 
              state: 'dead' as const, 
-             note: `${crop.name} cannot survive Winter frost. Plant in ${crop.suitableSeasons.join(' or ')}.` 
+             note: `${currentCrop.name} cannot survive Winter frost. Plant in ${currentCrop.suitableSeasons.join(' or ')}.` 
           };
         }
-        if (nextSeason === 'Summer' && crop.isHeatSensitive) {
+        if (nextSeason === 'Summer' && currentCrop.isHeatSensitive) {
           return { 
              ...tile, 
              state: 'dead' as const, 
-             note: `${crop.name} cannot survive Summer heat. Plant in ${crop.suitableSeasons.join(' or ')}.` 
+             note: `${currentCrop.name} cannot survive Summer heat. Plant in ${currentCrop.suitableSeasons.join(' or ')}.` 
           };
         }
 
+        // Moisture Logic
         let newMoisture = tile.moisture;
         let hasGrown = false;
 
@@ -410,6 +748,13 @@ const App: React.FC = () => {
            }
         }
 
+        // --- AUTOMATION: IRRIGATION ---
+        if (automation && automation.hasIrrigation && automation.irrigationEnabled && nextWeather !== 'Drought') {
+             // Ensure minimum 50% moisture
+             if (newMoisture < 50) newMoisture = 50;
+        }
+
+        // Weather Effects on Moisture
         if (nextWeather === 'Rainy') newMoisture += 50; 
         if (nextWeather === 'Storm') newMoisture = MAX_MOISTURE;
         if (nextWeather === 'Sunny') newMoisture -= EVAPORATION_RATE; 
@@ -424,9 +769,9 @@ const App: React.FC = () => {
         const newProgress = tile.growthProgress + 1;
         let newState: Tile['state'] = tile.state;
         
-        if (newProgress >= crop.duration) {
+        if (newProgress >= currentCrop.duration) {
             newState = 'mature';
-            if (!toast) showToast(`${crop.name} is ready!`, 'success');
+            if (!toast && !automation?.hasDrone) showToast(`${currentCrop.name} is ready!`, 'success');
         }
 
         return { 
@@ -444,7 +789,9 @@ const App: React.FC = () => {
         currentMonth: nextMonth,
         season: nextSeason,
         weather: nextWeather,
-        grid: nextGrid,
+        grid: updatedGrid,
+        money: prev.money + moneyChange,
+        inventory: inventoryChanges,
         selectedTool: ToolType.NONE,
         goldenApplePrice: newCandle.close,
         marketHistory: newMarketHistory,
@@ -461,10 +808,8 @@ const App: React.FC = () => {
       showToast("Clear the land first!", 'error');
       return;
     }
-
     const crop = CROPS.find(c => c.id === seedId);
     if (!crop) return;
-
     const areaId = Math.floor(tileId / 12);
     if (seedId === GOLDEN_APPLE_ID && areaId !== 3) {
         showToast("Golden Apples only grow in the Golden Orchard!", 'error');
@@ -474,13 +819,11 @@ const App: React.FC = () => {
         showToast("Only Golden Apples grow in this mystic soil!", 'error');
         return;
     }
-
     const ownedCount = gameState.inventory[seedId] || 0;
     if (ownedCount <= 0) {
       showToast("Out of seeds! Buy more.", 'error');
       return;
     }
-
     setGameState(prev => ({
       ...prev,
       inventory: {
@@ -536,41 +879,31 @@ const App: React.FC = () => {
         return;
     }
 
-    // 1. Selling (Was Harvest)
     if (selectedTool === ToolType.SELL && tile.state === 'mature') {
       const seed = CROPS.find(c => c.id === tile.cropId);
       if (seed) {
-        // Find the PRODUCE yield
-        const produceId = seed.harvestYieldId || seed.id; // Fallback to self if not set (safeguard)
+        const produceId = seed.harvestYieldId || seed.id; 
         const produce = CROPS.find(c => c.id === produceId);
-        
         if (!produce) return;
 
         if (seed.id === GOLDEN_APPLE_ID) {
-            // Special Case: Golden Apple Sold directly (if for some reason user wants to do this)
-            // But usually user should harvest Golden Apple to use for Options.
-            // Let's allow selling for Cash using market price.
             addMoney(gameState.goldenApplePrice);
             showToast(`Sold Golden Apple for $${gameState.goldenApplePrice}`, 'success');
         } else {
-            // Standard Crop -> Sell for fixed produce price
             addMoney(produce.sellPrice);
             showToast(`Sold ${produce.name} for $${produce.sellPrice}`, 'success');
         }
-        
         updateTile({ state: 'empty', cropId: null, growthProgress: 0, isWatered: false, note: undefined, shelfLife: 0 });
       }
       return;
     }
 
-    // 2. Harvesting (Default interaction / No tool / Hand)
     if ((selectedTool === ToolType.NONE) && tile.state === 'mature') {
         const seed = CROPS.find(c => c.id === tile.cropId);
         if (seed) {
             const produceId = seed.harvestYieldId || seed.id;
             const produce = CROPS.find(c => c.id === produceId);
             if (!produce) return;
-
             setGameState(prev => ({
                 ...prev,
                 inventory: {
@@ -584,7 +917,6 @@ const App: React.FC = () => {
         return;
     }
 
-    // 3. Watering
     if (selectedTool === ToolType.WATER) {
       if (tile.state === 'empty' || tile.state === 'dead') return;
       if (tile.moisture >= MAX_MOISTURE) {
@@ -604,14 +936,12 @@ const App: React.FC = () => {
       return;
     }
 
-    // 4. Clearing
     if (selectedTool === ToolType.SHOVEL) {
       if (tile.state !== 'dead' && !(tile.state === 'empty' && tile.note)) return;
       updateTile({ state: 'empty', cropId: null, growthProgress: 0, isWatered: false, note: undefined });
       return;
     }
 
-    // 5. Planting
     if (selectedTool === ToolType.SEED && selectedSeedId) {
       handlePlant(tileId, selectedSeedId);
     }
@@ -626,6 +956,25 @@ const App: React.FC = () => {
           case 'Winter': return 'from-slate-200 via-slate-100 to-white';
       }
   };
+
+  // If Factory View is active, render ONLY factory
+  if (gameState.view === 'FACTORY') {
+      return (
+          <Factory 
+            isOpen={true}
+            onClose={() => setGameState(p => ({ ...p, view: 'FARM' }))}
+            inventory={gameState.inventory}
+            money={gameState.money}
+            activeJobs={gameState.activeJobs}
+            factorySlots={gameState.factorySlots}
+            factoryHoppers={gameState.factoryHoppers}
+            hasConveyor={gameState.hasConveyor}
+            onStartJob={handleStartJob}
+            onCollectJob={handleCollectJob}
+            onBuySlot={handleBuyFactorySlot}
+          />
+      );
+  }
 
   return (
     <div className={`min-h-screen font-sans relative select-none overflow-y-auto bg-gradient-to-br ${getBackgroundGradient()} ${isShaking ? 'shake' : ''}`}>
@@ -646,6 +995,7 @@ const App: React.FC = () => {
         onOpenShop={() => setGameState(p => ({ ...p, isShopOpen: true }))}
         onOpenInventory={() => setGameState(p => ({ ...p, isInventoryOpen: true }))}
         onOpenStockMarket={() => setGameState(p => ({ ...p, isStockMarketOpen: true }))}
+        onOpenFactory={() => setGameState(p => ({ ...p, view: 'FACTORY' }))}
         onAddDebugMoney={() => addMoney(10000)}
       />
 
@@ -667,6 +1017,7 @@ const App: React.FC = () => {
               grid={gameState.grid}
               unlockedAreas={gameState.unlockedAreas}
               areaNames={gameState.areaNames}
+              areaAutomation={gameState.areaAutomation}
               currentSeason={gameState.season}
               selectedTool={gameState.selectedTool}
               selectedSeedId={gameState.selectedSeedId}
@@ -687,6 +1038,8 @@ const App: React.FC = () => {
         money={gameState.money}
         season={gameState.season}
         inventory={gameState.inventory}
+        currentMonth={gameState.currentMonth}
+        onOpenFarmOS={() => setGameState(p => ({ ...p, isFarmOSOpen: true }))}
       />
 
       <Almanac 
@@ -725,6 +1078,24 @@ const App: React.FC = () => {
         optionHistory={gameState.optionHistory}
         onBuyOption={handleBuyOption}
         onExerciseOption={handleExerciseOption}
+      />
+
+      <FarmOS 
+         isOpen={gameState.isFarmOSOpen}
+         onClose={() => setGameState(p => ({ ...p, isFarmOSOpen: false }))}
+         money={gameState.money}
+         unlockedAreas={gameState.unlockedAreas}
+         areaAutomation={gameState.areaAutomation}
+         factoryHoppers={gameState.factoryHoppers}
+         factorySlots={gameState.factorySlots}
+         hasConveyor={gameState.hasConveyor}
+         inventory={gameState.inventory}
+         onBuyAreaUpgrade={handleBuyAreaUpgrade}
+         onToggleAreaUpgrade={handleToggleAreaUpgrade}
+         onSetAreaAutoSell={handleSetAreaAutoSell}
+         onSetAreaSeederId={handleSetAreaSeederId}
+         onBuyFactoryUpgrade={handleBuyFactoryUpgrade}
+         onToggleFactoryUpgrade={() => {}}
       />
     </div>
   );

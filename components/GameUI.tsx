@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { SeasonType, ToolType, WeatherType } from '../types';
-import { SEASONS, SEASON_CONFIG, CROPS, WEATHER_CONFIG } from '../constants';
-import { BookOpen, Sprout, Droplets, Axe, Shovel, Coins, ArrowRight, Store, Backpack, TrendingUp, PlusCircle, Lock } from 'lucide-react';
+import { SEASONS, SEASON_CONFIG, CROPS, WEATHER_CONFIG, MONTH_NAMES } from '../constants';
+import { BookOpen, Sprout, Droplets, Axe, Shovel, Coins, ArrowRight, Store, Backpack, TrendingUp, PlusCircle, Lock, Factory as FactoryIcon, Monitor } from 'lucide-react';
+import { ItemIcon } from './Icons';
 
 // --- Header (HUD) ---
 
@@ -17,14 +18,13 @@ interface HeaderProps {
   onOpenShop: () => void;
   onOpenInventory: () => void;
   onOpenStockMarket: () => void;
+  onOpenFactory: () => void;
   onAddDebugMoney: () => void;
 }
 
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 export const Header: React.FC<HeaderProps> = ({ 
     season, weather, turn, money, currentMonth, unlockedAreas,
-    onOpenAlmanac, onOpenShop, onOpenInventory, onOpenStockMarket, onAddDebugMoney
+    onOpenAlmanac, onOpenShop, onOpenInventory, onOpenStockMarket, onOpenFactory, onAddDebugMoney
 }) => {
   const weatherConfig = WEATHER_CONFIG[weather];
   const WeatherIcon = weatherConfig.icon;
@@ -127,16 +127,26 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Right: Buttons */}
-      <div className="pointer-events-auto flex flex-col gap-2">
+      <div className="pointer-events-auto flex flex-col gap-2 items-end">
+        {/* Farm Guide Button */}
         <button 
           onClick={onOpenAlmanac}
-          className="bg-white/90 hover:bg-white active:scale-95 transition-all text-slate-600 p-3.5 rounded-2xl shadow-[0_8px_16px_rgba(0,0,0,0.08)] border-2 border-white group"
+          className="bg-white/90 hover:bg-white active:scale-95 transition-all text-slate-600 py-3 px-5 rounded-2xl shadow-[0_8px_16px_rgba(0,0,0,0.08)] border-2 border-white group flex items-center gap-2"
           title="Guide"
         >
           <BookOpen className="w-6 h-6 group-hover:text-amber-600 transition-colors" />
+          <span className="font-black text-sm uppercase tracking-wide text-slate-700 group-hover:text-amber-600">Farm Guide</span>
         </button>
         
         <div className="flex gap-2">
+             <button 
+                onClick={onOpenFactory}
+                className="bg-slate-700 hover:bg-slate-800 text-white p-3.5 rounded-2xl shadow-lg shadow-slate-400 border-2 border-white/20 active:scale-95 transition-all"
+                title="Workshop"
+            >
+                <FactoryIcon className="w-6 h-6" />
+            </button>
+
             <button 
             onClick={onOpenInventory}
             className="bg-orange-400 hover:bg-orange-500 text-white p-3.5 rounded-2xl shadow-lg shadow-orange-200 border-2 border-white/20 active:scale-95 transition-all"
@@ -175,6 +185,8 @@ interface ActionDockProps {
   money: number;
   season: SeasonType;
   inventory: Record<number, number>;
+  currentMonth: number;
+  onOpenFarmOS: () => void;
 }
 
 export const ActionDock: React.FC<ActionDockProps> = ({ 
@@ -185,7 +197,9 @@ export const ActionDock: React.FC<ActionDockProps> = ({
   selectedSeedId,
   money,
   season,
-  inventory
+  inventory,
+  currentMonth,
+  onOpenFarmOS
 }) => {
   
   const tools = [
@@ -203,7 +217,7 @@ export const ActionDock: React.FC<ActionDockProps> = ({
 
   // Filter crops to show only what is in inventory (only seeds have buyPrice > 0, so this check works if they have seeds)
   // We want to show only seeds in the seed pouch
-  const ownedSeeds = CROPS.filter(crop => (inventory[crop.id] || 0) > 0 && crop.buyPrice > 0);
+  const ownedSeeds = CROPS.filter(crop => (inventory[crop.id] || 0) > 0 && crop.category === 'SEED');
 
   return (
     <div className="fixed bottom-8 left-0 right-0 z-30 flex flex-col items-center pointer-events-none font-fredoka">
@@ -237,7 +251,9 @@ export const ActionDock: React.FC<ActionDockProps> = ({
                         active:scale-90
                         `}
                     >
-                        <span className={`text-4xl mb-2 drop-shadow-sm transform transition-transform hover:scale-110 ${crop.emojiClass || ''}`}>{crop.emoji}</span>
+                        <div className="w-12 h-12 mb-2 drop-shadow-sm transform transition-transform hover:scale-110">
+                             <ItemIcon name={crop.iconKey} />
+                        </div>
                         <span className="text-xs font-black text-slate-600">x{count}</span>
                         {isRecommended && (
                             <div className="absolute -top-2 -right-2 bg-green-400 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm ring-2 ring-white">
@@ -255,6 +271,18 @@ export const ActionDock: React.FC<ActionDockProps> = ({
       {/* Main Toolbar - Glass Pill */}
       <div className="pointer-events-auto bg-white/90 backdrop-blur-xl p-2.5 rounded-[2rem] shadow-[0_20px_40px_rgba(0,0,0,0.12)] border border-white/60 flex items-center gap-3 sm:gap-5">
           
+          {/* FarmOS Button (New) */}
+          <button
+            onClick={onOpenFarmOS}
+            className="group relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center transition-all duration-200 bg-slate-800 text-green-400 shadow-lg hover:bg-slate-700 active:scale-95 border border-green-900/50"
+            title="FarmOS Control"
+          >
+            <Monitor className="w-6 h-6 group-hover:animate-pulse" />
+            <span className="text-[8px] font-bold mt-1">OS</span>
+          </button>
+
+          <div className="w-px h-8 bg-slate-200/50 mx-1"></div>
+
           {/* Plant Button */}
           <button
             onClick={() => onSelectTool(selectedTool === ToolType.SEED ? ToolType.NONE : ToolType.SEED)}
@@ -294,9 +322,9 @@ export const ActionDock: React.FC<ActionDockProps> = ({
             onClick={onNextMonth}
             className="group relative px-6 h-16 sm:h-18 bg-slate-800 hover:bg-slate-900 active:scale-95 rounded-2xl flex flex-col items-center justify-center text-white shadow-xl transition-all"
           >
-            <span className="text-[9px] font-bold opacity-60 uppercase tracking-widest">Advance</span>
+            <span className="text-[9px] font-bold opacity-60 uppercase tracking-widest">FINISH</span>
             <div className="flex items-center gap-2 font-black text-lg">
-               Month <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+               {MONTH_NAMES[currentMonth - 1]} <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </div>
           </button>
       </div>

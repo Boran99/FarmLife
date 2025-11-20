@@ -11,21 +11,45 @@ export enum ToolType {
   SHOVEL = 'SHOVEL',
 }
 
+export type ItemCategory = 'SEED' | 'PRODUCE' | 'PRODUCT' | 'SPECIAL';
+
 export interface Crop {
   id: number;
   name: string;
-  emoji: string;
+  emoji: string; // Keep for fallback or particle effects
+  iconKey: string; // Key for SVG Icon Map
+  category: ItemCategory;
   buyPrice: number;
   sellPrice: number;
-  harvestYieldId?: number; // ID of the item obtained when harvesting
+  harvestYieldId?: number;
   suitableSeasons: SeasonType[];
   duration: number; // months to mature
   isColdResistant: boolean;
-  isHeatSensitive?: boolean; // New: Dies in Summer
+  isHeatSensitive?: boolean;
   description: string;
   color: string;
-  emojiClass?: string; // Custom CSS class for filters (e.g. hue-rotate)
-  requiredAreaId?: number; // New: Unlocks when this land area is bought
+  emojiClass?: string;
+  requiredAreaId?: number;
+}
+
+export interface Recipe {
+    id: number;
+    name: string;
+    inputItemId: number;
+    inputCount: number;
+    outputItemId: number;
+    outputCount: number;
+    realTimeSeconds: number; // Seconds to process in real-time
+    description: string;
+}
+
+export interface ProcessingJob {
+    id: string;
+    recipeId: number;
+    slotIndex: number; // Which machine slot this job occupies
+    startTime: number; // Timestamp
+    endTime: number; // Timestamp
+    isComplete: boolean;
 }
 
 export type TileState = 'empty' | 'seeded' | 'growing' | 'mature' | 'dead' | 'damaged';
@@ -36,11 +60,11 @@ export interface Tile {
   isLocked: boolean;
   cropId: number | null;
   growthProgress: number;
-  isWatered: boolean; // Legacy boolean, can be derived from moisture > 0
+  isWatered: boolean;
   moisture: number; // 0 to 100
-  recoveryTime?: number; // Months until land is repaired (Earthquake)
+  recoveryTime?: number; // Months until land is repaired
   note?: string;
-  shelfLife?: number; // Months a mature crop has been sitting (For Golden Apples)
+  shelfLife?: number;
 }
 
 export interface MarketCandle {
@@ -55,10 +79,10 @@ export type OptionType = 'CALL' | 'PUT';
 export interface FinancialOption {
   id: string;
   type: OptionType;
-  strikePrice: number; // The locked price
-  premium: number; // The cost paid (in Apples now, but value tracked here for reference if needed)
-  contractSize: number; // How many apples this covers (e.g. 10)
-  expiryTurn: number; // The turn index it expires (valid only for this turn)
+  strikePrice: number;
+  premium: number;
+  contractSize: number;
+  expiryTurn: number;
 }
 
 export interface OptionHistoryRecord {
@@ -72,30 +96,58 @@ export interface OptionHistoryRecord {
 
 export const GOLDEN_APPLE_FRUIT_ID = 1000;
 
+export type ViewState = 'FARM' | 'FACTORY';
+
+// --- AUTOMATION TYPES ---
+export type AreaUpgradeType = 'IRRIGATION' | 'DRONE' | 'SEEDER';
+
+export interface AreaAutomationConfig {
+    areaId: number;
+    hasIrrigation: boolean;
+    irrigationEnabled: boolean;
+    hasDrone: boolean;
+    droneEnabled: boolean;
+    autoSell: boolean; // If true, Drone sells. If false, Drone harvests to inventory.
+    hasSeeder: boolean;
+    seederEnabled: boolean;
+    seederSeedId: number | null; // Which seed to auto-plant
+}
+
 export interface GameState {
-  turn: number; // Total months passed
-  currentMonth: number; // 1-12
+  turn: number;
+  currentMonth: number;
   season: SeasonType;
   weather: WeatherType;
   money: number;
   selectedTool: ToolType;
   selectedSeedId: number | null;
   grid: Tile[];
-  inventory: Record<number, number>; // itemId -> quantity
-  unlockedAreas: number[]; // Indices of unlocked grid areas
-  areaNames: Record<number, string>; // Custom names for areas
+  inventory: Record<number, number>;
+  unlockedAreas: number[];
+  areaNames: Record<number, string>;
   
+  // Automation State
+  areaAutomation: Record<number, AreaAutomationConfig>;
+  factoryHoppers: boolean[]; // Index corresponds to factory slot
+  hasConveyor: boolean;
+
+  // Factory State
+  view: ViewState; 
+  factorySlots: number;
+  activeJobs: ProcessingJob[];
+
   // Stock Market
   goldenApplePrice: number;
   marketHistory: MarketCandle[];
   options: FinancialOption[];
   optionHistory: OptionHistoryRecord[];
 
-  // UI States
+  // UI States (Modals)
   isAlmanacOpen: boolean;
   isShopOpen: boolean;
   isInventoryOpen: boolean;
   isStockMarketOpen: boolean;
+  isFarmOSOpen: boolean; // New Control Center
   
   messages: string[];
 }

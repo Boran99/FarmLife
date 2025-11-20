@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { X, TrendingUp, TrendingDown, ShoppingCart, ShieldCheck, Rocket, AlertCircle, History, Coins, Sprout } from 'lucide-react';
 import { MarketCandle, FinancialOption, OptionHistoryRecord } from '../types';
+import { ItemIcon } from './Icons';
 
 interface StockMarketProps {
   isOpen: boolean;
@@ -126,7 +127,9 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                         {/* Spot Market (Fruit) */}
                         <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-3">
                              <div className="flex items-center gap-3 border-b border-slate-100 pb-2">
-                                <div className="bg-yellow-100 p-2 rounded-xl text-xl filter hue-rotate-[60deg] brightness-125 saturate-150">🍎</div>
+                                <div className="bg-yellow-100 p-2 rounded-xl text-xl w-12 h-12">
+                                    <ItemIcon name="Golden Apple" />
+                                </div>
                                 <div>
                                     <h3 className="font-black text-slate-800">Spot Market</h3>
                                     <p className="text-[10px] text-slate-400 font-bold">Trade Fruit directly</p>
@@ -161,7 +164,9 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                         {/* Seed Market */}
                         <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-3">
                              <div className="flex items-center gap-3 border-b border-slate-100 pb-2">
-                                <div className="bg-green-100 p-2 rounded-xl text-xl filter hue-rotate-[60deg] brightness-125 saturate-150">🌰</div>
+                                <div className="bg-green-100 p-2 rounded-xl text-xl w-12 h-12">
+                                    <ItemIcon name="Golden Apple Seed" />
+                                </div>
                                 <div>
                                     <h3 className="font-black text-slate-800">Seed Market</h3>
                                     <p className="text-[10px] text-slate-400 font-bold">90% of Spot Price</p>

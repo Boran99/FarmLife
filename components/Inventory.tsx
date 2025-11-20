@@ -2,6 +2,7 @@
 import React from 'react';
 import { X, Backpack } from 'lucide-react';
 import { CROPS } from '../constants';
+import { ItemIcon } from './Icons';
 
 interface InventoryProps {
   isOpen: boolean;
@@ -50,13 +51,19 @@ export const Inventory: React.FC<InventoryProps> = ({ isOpen, onClose, inventory
                 </div>
             ) : (
                 <div className="grid grid-cols-3 gap-3">
-                    {items.map((item) => (
-                        <div key={item.id} className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center relative group">
-                            <div className={`text-4xl mb-2 drop-shadow-sm transform transition-transform group-hover:scale-110 ${item.emojiClass || ''}`}>{item.emoji}</div>
+                    {items.map((item) => {
+                        const isProduct = item.category === 'PRODUCT';
+                        return (
+                        <div key={item.id} className={`bg-white p-3 rounded-2xl shadow-sm flex flex-col items-center relative group border ${isProduct ? 'border-blue-100' : 'border-slate-100'}`}>
+                            {isProduct && <span className="absolute top-2 right-2 w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>}
+                            <div className="w-12 h-12 mb-2 drop-shadow-sm transform transition-transform group-hover:scale-110">
+                                <ItemIcon name={item.iconKey} />
+                            </div>
                             <span className="text-xs font-bold text-slate-700 text-center leading-tight mb-1">{item.name}</span>
-                            <span className="bg-orange-100 text-orange-700 text-[10px] font-black px-2 py-0.5 rounded-full">x{item.count}</span>
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isProduct ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>x{item.count}</span>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

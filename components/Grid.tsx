@@ -1,13 +1,15 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Tile, ToolType, SeasonType } from '../types';
+import { Tile, ToolType, SeasonType, AreaAutomationConfig } from '../types';
 import { CROPS, LAND_COST, TILES_PER_AREA, AREA_CONFIG } from '../constants';
-import { Lock, ChevronLeft, ChevronRight, Edit2, Check } from 'lucide-react';
+import { Lock, ChevronLeft, ChevronRight, Edit2, Check, Plane, Droplets, Sprout } from 'lucide-react';
+import { ItemIcon } from './Icons';
 
 interface GridProps {
   grid: Tile[];
   unlockedAreas: number[];
   areaNames: Record<number, string>;
+  areaAutomation: Record<number, AreaAutomationConfig>;
   currentSeason: SeasonType;
   selectedTool: ToolType;
   selectedSeedId: number | null;
@@ -21,6 +23,7 @@ export const Grid: React.FC<GridProps> = ({
   grid, 
   unlockedAreas,
   areaNames,
+  areaAutomation,
   currentSeason, 
   selectedTool, 
   onTileClick,
@@ -92,11 +95,12 @@ export const Grid: React.FC<GridProps> = ({
                         const startIndex = area.id * TILES_PER_AREA;
                         const areaTiles = grid.slice(startIndex, startIndex + TILES_PER_AREA);
                         const currentName = areaNames[area.id] || area.name;
+                        const automation = areaAutomation[area.id];
 
                         return (
                             <div key={area.id} className="w-full h-full flex-shrink-0 relative flex flex-col p-6 pt-16">
                                 
-                                {/* Header for Area (Inside the slide now to fix clipping) */}
+                                {/* Header for Area */}
                                 <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-white px-6 py-2 rounded-full shadow-lg text-sm font-black text-slate-500 border-4 border-[#e8dcb9] z-20 whitespace-nowrap flex items-center gap-2 ring-4 ring-black/5 min-w-[200px] justify-center">
                                     {isEditing === area.id ? (
                                       <div className="flex items-center gap-2 w-full">
@@ -121,6 +125,37 @@ export const Grid: React.FC<GridProps> = ({
                                 {/* Inner Soil Bed - Square Container */}
                                 <div className={`flex-1 bg-[#8d6e63] rounded-[2.5rem] shadow-[inset_0_4px_16px_rgba(0,0,0,0.25)] relative overflow-hidden transition-all duration-500 flex items-center justify-center ${!isUnlocked ? 'filter grayscale-[0.5] opacity-90' : ''}`}>
                                     
+                                    {/* Automation Visuals */}
+                                    {isUnlocked && automation && (
+                                        <>
+                                            {/* Irrigation Pipes */}
+                                            {automation.hasIrrigation && (
+                                                <div className="absolute inset-4 border-4 border-slate-400 rounded-[1.5rem] z-0 opacity-50 pointer-events-none">
+                                                    <div className="absolute top-1/2 -translate-y-1/2 left-0 w-full h-2 bg-slate-400"></div>
+                                                    <div className="absolute left-1/2 -translate-x-1/2 top-0 h-full w-2 bg-slate-400"></div>
+                                                </div>
+                                            )}
+                                            
+                                            {/* Drone Pad */}
+                                            {automation.hasDrone && (
+                                                <div className="absolute top-2 right-2 z-10 pointer-events-none">
+                                                    <div className="w-8 h-8 bg-slate-700 rounded-full border-2 border-yellow-500 flex items-center justify-center shadow-lg">
+                                                        <div className="text-xs text-yellow-500">H</div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Seeder Arm Base */}
+                                            {automation.hasSeeder && (
+                                                <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
+                                                    <div className="w-8 h-8 bg-slate-700 rounded border-2 border-green-500 flex items-center justify-center shadow-lg">
+                                                        <Sprout className="w-4 h-4 text-green-500" />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+
                                     {/* Locked Area Overlay */}
                                     {!isUnlocked && (
                                         <div className="absolute inset-0 z-30 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center text-center p-4 animate-in fade-in">
@@ -137,7 +172,7 @@ export const Grid: React.FC<GridProps> = ({
                                         </div>
                                     )}
 
-                                    <div className="grid grid-cols-4 gap-3 p-4">
+                                    <div className="grid grid-cols-4 gap-3 p-4 relative z-10">
                                         {areaTiles.map(tile => (
                                             <Plot 
                                                 key={tile.id}
@@ -189,6 +224,19 @@ interface PlotProps {
 
 const Plot: React.FC<PlotProps> = ({ tile, currentSeason, selectedTool, onClick, onPlant, isAreaLocked }) => {
     const crop = tile.cropId ? CROPS.find(c => c.id === tile.cropId) : null;
+    
+    // Determine visual icon: Use Produce icon if mature, otherwise Seed icon
+    let visualIconKey = crop?.iconKey;
+    if (tile.state === 'mature' && crop?.harvestYieldId) {
+        const produce = CROPS.find(c => c.id === crop.harvestYieldId);
+        if (produce) {
+            visualIconKey = produce.iconKey;
+        }
+    } else if (tile.state === 'mature' && crop?.id === 999) {
+        // Special case for Golden Apple if harvestYieldId linkage isn't enough (though it should be)
+        visualIconKey = 'Golden Apple';
+    }
+
     const [isDragOver, setIsDragOver] = useState(false);
     const isDamaged = tile.state === 'damaged';
 
@@ -269,11 +317,15 @@ const Plot: React.FC<PlotProps> = ({ tile, currentSeason, selectedTool, onClick,
 
                 {!tile.isLocked && !isDamaged && !isAreaLocked && (
                     <>
-                        <div className="transition-transform duration-500 transform hover:scale-110 relative z-10">
-                            {tile.state === 'dead' && <span className="text-2xl grayscale opacity-70">🥀</span>}
-                            {tile.state === 'seeded' && <span className="text-lg">🌰</span>}
-                            {tile.state === 'growing' && <span className="text-2xl animate-bounce-slow">🌱</span>}
-                            {tile.state === 'mature' && crop && <span className={`text-4xl drop-shadow-lg ${crop.emojiClass || ''}`}>{crop.emoji}</span>}
+                        <div className="transition-transform duration-500 transform hover:scale-110 relative z-10 w-full h-full p-1">
+                            {tile.state === 'dead' && <span className="text-2xl grayscale opacity-70 block text-center mt-4">🥀</span>}
+                            {tile.state === 'seeded' && <span className="text-lg block text-center mt-4">🌰</span>}
+                            {tile.state === 'growing' && <span className="text-2xl animate-bounce-slow block text-center mt-4">🌱</span>}
+                            {tile.state === 'mature' && visualIconKey && (
+                                <div className="w-full h-full drop-shadow-lg">
+                                    <ItemIcon name={visualIconKey} />
+                                </div>
+                            )}
                         </div>
 
                         {tile.state !== 'empty' && tile.state !== 'dead' && (

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { X, Store, ShoppingBag, Coins, Lock } from 'lucide-react';
 import { CROPS, GOLDEN_APPLE_ID, GOLDEN_APPLE_FRUIT_ID, AREA_CONFIG } from '../constants';
 import { SeasonType } from '../types';
+import { ItemIcon } from './Icons';
 
 interface ShopProps {
   isOpen: boolean;
@@ -68,7 +69,7 @@ export const Shop: React.FC<ShopProps> = ({ isOpen, onClose, money, onBuy, curre
             
             {mode === 'BUY' && CROPS.map((crop) => {
               // Buy Mode: Show Seeds
-              if (crop.id === GOLDEN_APPLE_ID || crop.id === GOLDEN_APPLE_FRUIT_ID || crop.buyPrice === 0) return null;
+              if (crop.id === GOLDEN_APPLE_ID || crop.id === GOLDEN_APPLE_FRUIT_ID || crop.category !== 'SEED') return null;
 
               const canAfford = money >= crop.buyPrice;
               const isSeason = crop.suitableSeasons.includes(currentSeason);
@@ -86,8 +87,8 @@ export const Shop: React.FC<ShopProps> = ({ isOpen, onClose, money, onBuy, curre
                         </div>
                     )}
                     <div className="flex gap-4">
-                        <div className={`bg-slate-50 w-16 h-16 rounded-2xl flex items-center justify-center text-4xl shadow-inner ${crop.emojiClass || ''}`}>
-                            {isUnlocked ? crop.emoji : <Lock className="w-8 h-8 text-slate-300" />}
+                        <div className={`bg-slate-50 w-16 h-16 rounded-2xl flex items-center justify-center text-4xl shadow-inner`}>
+                            {isUnlocked ? <div className="w-12 h-12"><ItemIcon name={crop.iconKey} /></div> : <Lock className="w-8 h-8 text-slate-300" />}
                         </div>
                         <div className="flex-1">
                             <h3 className="font-black text-slate-700">{crop.name}</h3>
@@ -120,19 +121,25 @@ export const Shop: React.FC<ShopProps> = ({ isOpen, onClose, money, onBuy, curre
             {mode === 'SELL' && CROPS.map((crop) => {
                // Sell Mode: Show Items in Inventory that have sellPrice > 0
                // Exclude Golden Apples (Sold in Stock Market)
+               // Allow Products and Produce
                if (crop.id === GOLDEN_APPLE_ID || crop.id === GOLDEN_APPLE_FRUIT_ID) return null;
                
                const ownedCount = inventory[crop.id] || 0;
                if (ownedCount === 0 || crop.sellPrice === 0) return null;
 
+               const isProduct = crop.category === 'PRODUCT';
+
                return (
-                <div key={crop.id} className="flex flex-col p-4 rounded-2xl bg-white shadow-sm hover:shadow-md transition border border-emerald-100 group">
+                <div key={crop.id} className={`flex flex-col p-4 rounded-2xl bg-white shadow-sm hover:shadow-md transition border group ${isProduct ? 'border-blue-100' : 'border-emerald-100'}`}>
                     <div className="flex gap-4">
-                        <div className={`bg-emerald-50 w-16 h-16 rounded-2xl flex items-center justify-center text-4xl shadow-inner ${crop.emojiClass || ''}`}>
-                            {crop.emoji}
+                        <div className={`${isProduct ? 'bg-blue-50' : 'bg-emerald-50'} w-16 h-16 rounded-2xl flex items-center justify-center text-4xl shadow-inner`}>
+                            <div className="w-12 h-12"><ItemIcon name={crop.iconKey} /></div>
                         </div>
                         <div className="flex-1">
-                            <h3 className="font-black text-slate-700">{crop.name}</h3>
+                            <div className="flex justify-between items-start">
+                                <h3 className="font-black text-slate-700">{crop.name}</h3>
+                                {isProduct && <span className="text-[9px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">CRAFTED</span>}
+                            </div>
                             <div className="flex items-center gap-2 mt-1">
                                 <span className="text-xs font-bold text-slate-400 uppercase">Owned:</span>
                                 <span className="text-sm font-black text-slate-700">{ownedCount}</span>
@@ -142,18 +149,18 @@ export const Shop: React.FC<ShopProps> = ({ isOpen, onClose, money, onBuy, curre
                     <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-50">
                         <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-slate-400 uppercase">Value</span>
-                            <span className="text-lg font-black text-emerald-600">${crop.sellPrice}</span>
+                            <span className={`text-lg font-black ${isProduct ? 'text-blue-600' : 'text-emerald-600'}`}>${crop.sellPrice}</span>
                         </div>
                         <div className="flex gap-2">
                             <button 
                                 onClick={() => onSell(crop.id, 1)}
-                                className="px-3 py-2 rounded-xl font-black text-xs bg-emerald-100 text-emerald-700 hover:bg-emerald-200 active:scale-95 transition-colors"
+                                className={`px-3 py-2 rounded-xl font-black text-xs ${isProduct ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'} active:scale-95 transition-colors`}
                             >
                                 Sell 1
                             </button>
                             <button 
                                 onClick={() => onSell(crop.id, ownedCount)}
-                                className="px-3 py-2 rounded-xl font-black text-xs bg-emerald-500 text-white hover:bg-emerald-600 shadow-[0_2px_0_rgb(16,185,129)] active:translate-y-[2px] active:shadow-none transition-all"
+                                className={`px-3 py-2 rounded-xl font-black text-xs ${isProduct ? 'bg-blue-500 text-white' : 'bg-emerald-500 text-white'} shadow-sm active:translate-y-[2px] active:shadow-none transition-all`}
                             >
                                 Sell All (${crop.sellPrice * ownedCount})
                             </button>
@@ -166,7 +173,7 @@ export const Shop: React.FC<ShopProps> = ({ isOpen, onClose, money, onBuy, curre
             {mode === 'SELL' && Object.keys(inventory).every(key => {
                 const id = Number(key);
                 const crop = CROPS.find(c => c.id === id);
-                // Return true if item shouldn't be shown (Golden Apple or 0 count or 0 sell price)
+                // Return true if item shouldn't be shown
                 return (inventory[id] === 0) || (crop?.sellPrice === 0) || (id === GOLDEN_APPLE_ID) || (id === GOLDEN_APPLE_FRUIT_ID);
             }) && (
                 <div className="col-span-full flex flex-col items-center justify-center py-12 text-slate-400">
