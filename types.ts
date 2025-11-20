@@ -113,6 +113,27 @@ export interface AreaAutomationConfig {
     seederSeedId: number | null; // Which seed to auto-plant
 }
 
+// --- QUEST SYSTEM TYPES ---
+export type QuestTaskType = 'PLANT' | 'WATER' | 'HARVEST' | 'SELL' | 'WAIT_SEASON' | 'UNLOCK_AREA' | 'FACTORY_PRODUCE' | 'BUY_OPTION';
+
+export interface QuestTask {
+    description: string;
+    type: QuestTaskType;
+    targetId?: number | string; // Item ID, Season Name, Area ID etc.
+    count: number;
+    current: number;
+    isComplete: boolean;
+}
+
+export interface Quest {
+    id: number;
+    title: string;
+    description: string;
+    tasks: QuestTask[];
+    rewardMoney: number;
+    status: 'LOCKED' | 'ACTIVE' | 'COMPLETED' | 'CLAIMED';
+}
+
 export interface GameState {
   turn: number;
   currentMonth: number;
@@ -142,12 +163,16 @@ export interface GameState {
   options: FinancialOption[];
   optionHistory: OptionHistoryRecord[];
 
+  // Quest State
+  quests: Quest[];
+
   // UI States (Modals)
   isAlmanacOpen: boolean;
   isShopOpen: boolean;
   isInventoryOpen: boolean;
   isStockMarketOpen: boolean;
   isFarmOSOpen: boolean; // New Control Center
+  isQuestBoardOpen: boolean;
   
   messages: string[];
 }

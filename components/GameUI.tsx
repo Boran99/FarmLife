@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { SeasonType, ToolType, WeatherType } from '../types';
+import { SeasonType, ToolType, WeatherType, Quest } from '../types';
 import { SEASONS, SEASON_CONFIG, CROPS, WEATHER_CONFIG, MONTH_NAMES } from '../constants';
-import { BookOpen, Sprout, Droplets, Axe, Shovel, Coins, ArrowRight, Store, Backpack, TrendingUp, PlusCircle, Lock, Factory as FactoryIcon, Monitor } from 'lucide-react';
+import { BookOpen, Sprout, Droplets, Axe, Shovel, Coins, ArrowRight, Store, Backpack, TrendingUp, PlusCircle, Lock, Factory as FactoryIcon, Monitor, ClipboardCheck, Trophy } from 'lucide-react';
 import { ItemIcon } from './Icons';
 
 // --- Header (HUD) ---
@@ -14,17 +14,20 @@ interface HeaderProps {
   money: number;
   currentMonth: number;
   unlockedAreas: number[];
+  activeQuest?: Quest;
+  readyToClaimQuest?: Quest;
   onOpenAlmanac: () => void;
   onOpenShop: () => void;
   onOpenInventory: () => void;
   onOpenStockMarket: () => void;
   onOpenFactory: () => void;
+  onOpenQuestBoard: () => void;
   onAddDebugMoney: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
-    season, weather, turn, money, currentMonth, unlockedAreas,
-    onOpenAlmanac, onOpenShop, onOpenInventory, onOpenStockMarket, onOpenFactory, onAddDebugMoney
+    season, weather, turn, money, currentMonth, unlockedAreas, activeQuest, readyToClaimQuest,
+    onOpenAlmanac, onOpenShop, onOpenInventory, onOpenStockMarket, onOpenFactory, onOpenQuestBoard, onAddDebugMoney
 }) => {
   const weatherConfig = WEATHER_CONFIG[weather];
   const WeatherIcon = weatherConfig.icon;
@@ -48,6 +51,9 @@ export const Header: React.FC<HeaderProps> = ({
       Autumn: ['bg-red-400', 'bg-amber-500', 'bg-orange-300'],
       Winter: ['bg-white', 'bg-sky-200', 'bg-blue-300'],
   };
+
+  // Find first incomplete task for mini-tracker
+  const currentTask = activeQuest?.tasks.find(t => !t.isComplete);
 
   return (
     <div className="fixed top-0 left-0 right-0 p-4 sm:p-6 z-40 pointer-events-none flex justify-between items-start max-w-5xl mx-auto w-full font-fredoka">
@@ -79,6 +85,35 @@ export const Header: React.FC<HeaderProps> = ({
                 <Store className="w-4 h-4" /> Shop
              </button>
           </div>
+          
+          {/* Mini Quest Tracker */}
+          {readyToClaimQuest ? (
+              <button 
+                onClick={onOpenQuestBoard}
+                className="mt-2 bg-green-500/90 backdrop-blur-md hover:bg-green-600 text-white p-3 rounded-2xl shadow-lg shadow-green-200 border-2 border-white/20 text-left transition-all active:scale-95 max-w-[200px] animate-bounce-slow"
+              >
+                  <div className="flex items-center gap-2 mb-1">
+                      <Trophy className="w-4 h-4 text-yellow-200" />
+                      <span className="text-[10px] font-black uppercase tracking-wider text-green-100">Reward Ready!</span>
+                  </div>
+                  <p className="text-xs font-bold leading-tight">Mission Complete</p>
+                  <div className="mt-1 text-[10px] bg-green-700/30 inline-block px-2 py-0.5 rounded">Click to Claim</div>
+              </button>
+          ) : activeQuest && currentTask ? (
+              <button 
+                onClick={onOpenQuestBoard}
+                className="mt-2 bg-indigo-500/90 backdrop-blur-md hover:bg-indigo-600 text-white p-3 rounded-2xl shadow-lg shadow-indigo-200 border-2 border-white/20 text-left transition-all active:scale-95 max-w-[200px]"
+              >
+                  <div className="flex items-center gap-2 mb-1">
+                      <ClipboardCheck className="w-4 h-4 text-indigo-200" />
+                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-100">Current Goal</span>
+                  </div>
+                  <p className="text-xs font-bold leading-tight">{currentTask.description}</p>
+                  <div className="mt-2 h-1.5 bg-indigo-800/30 rounded-full overflow-hidden">
+                       <div className="h-full bg-indigo-200 transition-all duration-500" style={{ width: `${(currentTask.current / currentTask.count) * 100}%` }}></div>
+                  </div>
+              </button>
+          ) : null}
       </div>
 
       {/* Center: Season Badge */}

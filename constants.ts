@@ -1,5 +1,5 @@
 
-import { Crop, SeasonType, WeatherType, Recipe } from './types';
+import { Crop, SeasonType, WeatherType, Recipe, Quest } from './types';
 import { CloudRain, Sun, Snowflake, Flower2, Leaf, CloudLightning, ThermometerSun, Activity } from 'lucide-react';
 
 export const SEASONS: SeasonType[] = ['Spring', 'Summer', 'Autumn', 'Winter'];
@@ -361,3 +361,62 @@ export const AUTOMATION_COSTS = {
     HOPPER: 10000, // Per factory slot
     CONVEYOR: 50000 // Global
 };
+
+// --- TUTORIAL QUESTS ---
+export const TUTORIAL_QUESTS: Quest[] = [
+    {
+        id: 1,
+        title: "The New Farmer",
+        description: "Welcome! Let's learn the basics of planting and harvesting. Spinach is a fast-growing Spring crop.",
+        status: 'ACTIVE',
+        rewardMoney: 100,
+        tasks: [
+            { type: 'PLANT', description: "Plant 3 Spinach Seeds", targetId: 104, count: 3, current: 0, isComplete: false },
+            { type: 'WATER', description: "Water the soil 3 times", count: 3, current: 0, isComplete: false },
+            { type: 'HARVEST', description: "Harvest 3 Spinach", targetId: 1104, count: 3, current: 0, isComplete: false }
+        ]
+    },
+    {
+        id: 2,
+        title: "Seasonal Shifts",
+        description: "Crops have specific seasons. If planted in the wrong season, they will die. Wait for Summer and plant Corn!",
+        status: 'LOCKED',
+        rewardMoney: 200,
+        tasks: [
+            { type: 'WAIT_SEASON', description: "Reach Summer (Month 4)", targetId: 'Summer', count: 1, current: 0, isComplete: false },
+            { type: 'PLANT', description: "Plant 3 Corn Seeds in Summer", targetId: 101, count: 3, current: 0, isComplete: false }
+        ]
+    },
+    {
+        id: 3,
+        title: "Land Baron",
+        description: "You're running out of space. Earn enough money to unlock the East Field.",
+        status: 'LOCKED',
+        rewardMoney: 500,
+        tasks: [
+            { type: 'UNLOCK_AREA', description: "Unlock East Field", targetId: 1, count: 1, current: 0, isComplete: false }
+        ]
+    },
+    {
+        id: 4,
+        title: "Industrial Age",
+        description: "Raw crops are cheap. Process them in the Workshop to increase their value!",
+        status: 'LOCKED',
+        rewardMoney: 1000,
+        tasks: [
+            { type: 'HARVEST', description: "Harvest 5 Sunflowers", targetId: 1110, count: 5, current: 0, isComplete: false },
+            { type: 'FACTORY_PRODUCE', description: "Produce 1 Sunflower Oil", targetId: 2002, count: 1, current: 0, isComplete: false }
+        ]
+    },
+    {
+        id: 5,
+        title: "High Stakes",
+        description: "The Golden Orchard allows you to grow the mystical Golden Apple. Use the Stalk Market to trade options.",
+        status: 'LOCKED',
+        rewardMoney: 5000,
+        tasks: [
+            { type: 'UNLOCK_AREA', description: "Unlock Golden Orchard (Area 3)", targetId: 3, count: 1, current: 0, isComplete: false },
+            { type: 'BUY_OPTION', description: "Buy 1 Call Option", targetId: 'CALL', count: 1, current: 0, isComplete: false }
+        ]
+    }
+];
