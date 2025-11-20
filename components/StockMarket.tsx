@@ -220,7 +220,7 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                                     <span className="text-[10px] bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded">Defensive</span>
                                 </div>
                                 <p className="text-[10px] text-emerald-600 font-bold leading-tight">
-                                    Sell 10 Apples @ <span className="text-emerald-800">${currentPrice}</span> next month.
+                                    Sell 1 Apple @ <span className="text-emerald-800">${currentPrice}</span> next month.
                                 </p>
                             </button>
 
@@ -239,7 +239,7 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                                     <span className="text-[10px] bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded">Aggressive</span>
                                 </div>
                                 <p className="text-[10px] text-rose-600 font-bold leading-tight">
-                                    Buy 10 Apples @ <span className="text-rose-800">${currentPrice}</span> next month.
+                                    Buy 1 Apple @ <span className="text-rose-800">${currentPrice}</span> next month.
                                 </p>
                             </button>
                         </div>

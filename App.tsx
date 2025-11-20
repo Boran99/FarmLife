@@ -124,7 +124,7 @@ const App: React.FC = () => {
         type,
         strikePrice: gameState.goldenApplePrice,
         premium: 1, // 1 Apple
-        contractSize: 10, // Covers 10 Apples
+        contractSize: 1, // 1:1 Ratio (Covers 1 Apple)
         expiryTurn: gameState.turn + 1 // Valid only for the next turn
     };
 
@@ -180,7 +180,7 @@ const App: React.FC = () => {
   };
 
 
-  // --- Logic: Shop / Buy ---
+  // --- Logic: Shop / Buy & Sell ---
   const handleBuyItem = (itemId: number, cost: number) => {
       if (gameState.money < cost) {
           showToast("Not enough money!", 'error');
@@ -196,6 +196,29 @@ const App: React.FC = () => {
           }
       }));
       showToast("Purchased!", 'success');
+  };
+
+  const handleSellItem = (itemId: number, amount: number) => {
+      const owned = gameState.inventory[itemId] || 0;
+      if (owned < amount) {
+          showToast("Not enough items!", 'error');
+          return;
+      }
+
+      const item = CROPS.find(c => c.id === itemId);
+      if (!item) return;
+
+      const revenue = item.sellPrice * amount;
+      
+      setGameState(prev => ({
+          ...prev,
+          money: prev.money + revenue,
+          inventory: {
+              ...prev.inventory,
+              [itemId]: owned - amount
+          }
+      }));
+      showToast(`Sold ${amount} ${item.name} for $${revenue}`, 'success');
   };
 
   const handleBuyFruit = () => {
@@ -677,6 +700,9 @@ const App: React.FC = () => {
         money={gameState.money}
         onBuy={handleBuyItem}
         currentSeason={gameState.season}
+        inventory={gameState.inventory}
+        onSell={handleSellItem}
+        unlockedAreas={gameState.unlockedAreas}
       />
 
       <Inventory

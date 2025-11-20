@@ -25,6 +25,7 @@ export interface Crop {
   description: string;
   color: string;
   emojiClass?: string; // Custom CSS class for filters (e.g. hue-rotate)
+  requiredAreaId?: number; // New: Unlocks when this land area is bought
 }
 
 export type TileState = 'empty' | 'seeded' | 'growing' | 'mature' | 'dead' | 'damaged';

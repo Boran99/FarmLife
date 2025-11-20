@@ -32,7 +32,7 @@ export const GOLDEN_APPLE_ID = 999;
 export const GOLDEN_APPLE_FRUIT_ID = 1000;
 
 export const CROPS: Crop[] = [
-  // --- SEEDS ---
+  // --- TIER 1: BASIC SEEDS (Required Area: 0 - Main Garden) ---
   {
     id: 104,
     name: 'Spinach Seed',
@@ -41,64 +41,12 @@ export const CROPS: Crop[] = [
     sellPrice: 0,
     harvestYieldId: 1104,
     suitableSeasons: ['Spring', 'Autumn'],
-    duration: 1, // Fast crop
+    duration: 1,
     isColdResistant: true,
     isHeatSensitive: true,
     description: 'Fast growth. Harvest in 1 Month.',
-    color: 'text-green-600'
-  },
-  {
-    id: 105,
-    name: 'Strawberry Seed',
-    emoji: '🍓',
-    buyPrice: 60,
-    sellPrice: 0,
-    harvestYieldId: 1105,
-    suitableSeasons: ['Spring'],
-    duration: 3, // Realism: ~3 months from plant to full harvest
-    isColdResistant: false,
-    isHeatSensitive: true,
-    description: 'Sweet berries. Needs 3 months.',
-    color: 'text-red-600'
-  },
-  {
-    id: 101,
-    name: 'Corn Seed',
-    emoji: '🌽',
-    buyPrice: 30,
-    sellPrice: 0,
-    harvestYieldId: 1101,
-    suitableSeasons: ['Spring', 'Summer'],
-    duration: 4, // Realism: ~100 days
-    isColdResistant: false,
-    description: 'Tall stalks. Needs 4 months.',
-    color: 'text-yellow-500'
-  },
-  {
-    id: 106,
-    name: 'Tomato Seed',
-    emoji: '🍅',
-    buyPrice: 35,
-    sellPrice: 0,
-    harvestYieldId: 1106,
-    suitableSeasons: ['Summer'],
-    duration: 3, // Realism: ~3 months
-    isColdResistant: false,
-    description: 'Summer lover. Needs 3 months.',
-    color: 'text-red-500'
-  },
-  {
-    id: 103,
-    name: 'Watermelon Seed',
-    emoji: '🍉',
-    buyPrice: 50,
-    sellPrice: 0,
-    harvestYieldId: 1103,
-    suitableSeasons: ['Summer'],
-    duration: 4, // Realism: ~90-100 days
-    isColdResistant: false,
-    description: 'Giant fruit. Needs 4 months.',
-    color: 'text-red-500'
+    color: 'text-green-600',
+    requiredAreaId: 0
   },
   {
     id: 107,
@@ -108,10 +56,158 @@ export const CROPS: Crop[] = [
     sellPrice: 0,
     harvestYieldId: 1107,
     suitableSeasons: ['Spring', 'Autumn'],
-    duration: 3, // Realism: ~3-4 months
+    duration: 3,
     isColdResistant: true,
-    description: 'Root vegetable. Needs 3 months.',
-    color: 'text-amber-700'
+    description: 'Reliable root vegetable. Needs 3 months.',
+    color: 'text-amber-700',
+    requiredAreaId: 0
+  },
+  {
+    id: 101,
+    name: 'Corn Seed',
+    emoji: '🌽',
+    buyPrice: 30,
+    sellPrice: 0,
+    harvestYieldId: 1101,
+    suitableSeasons: ['Spring', 'Summer'],
+    duration: 4,
+    isColdResistant: false,
+    description: 'Tall stalks. Needs 4 months.',
+    color: 'text-yellow-500',
+    requiredAreaId: 0
+  },
+  
+  // --- TIER 2: INDUSTRIAL SEEDS (Required Area: 1 - East Field) ---
+  {
+    id: 109,
+    name: 'Soybean Seed',
+    emoji: '🌿',
+    buyPrice: 80,
+    sellPrice: 0,
+    harvestYieldId: 1109,
+    suitableSeasons: ['Summer'],
+    duration: 3,
+    isColdResistant: false,
+    description: 'Factory Input. Used for Tofu & Oil.',
+    color: 'text-green-700',
+    requiredAreaId: 1
+  },
+  {
+    id: 110,
+    name: 'Sunflower Seed',
+    emoji: '🌻',
+    buyPrice: 70,
+    sellPrice: 0,
+    harvestYieldId: 1110,
+    suitableSeasons: ['Summer'],
+    duration: 3,
+    isColdResistant: false,
+    description: 'Tall beauty. Seeds used for Oil.',
+    color: 'text-yellow-600',
+    requiredAreaId: 1
+  },
+  {
+    id: 111,
+    name: 'Sugar Cane Seed',
+    emoji: '🎋',
+    buyPrice: 90,
+    sellPrice: 0,
+    harvestYieldId: 1111,
+    suitableSeasons: ['Summer', 'Autumn'],
+    duration: 4,
+    isColdResistant: false,
+    description: 'Sweet stalks. Factory input for Sugar.',
+    color: 'text-emerald-400',
+    requiredAreaId: 1
+  },
+  {
+    id: 105,
+    name: 'Strawberry Seed',
+    emoji: '🍓',
+    buyPrice: 60,
+    sellPrice: 0,
+    harvestYieldId: 1105,
+    suitableSeasons: ['Spring'],
+    duration: 3,
+    isColdResistant: false,
+    isHeatSensitive: true,
+    description: 'Sweet berries. Needs 3 months.',
+    color: 'text-red-600',
+    requiredAreaId: 0 // Moved to basic, but pricey
+  },
+
+  // --- TIER 3: LUXURY & FACTORY (Required Area: 2 - South Valley) ---
+  {
+    id: 112,
+    name: 'Cotton Seed',
+    emoji: '☁️',
+    buyPrice: 150,
+    sellPrice: 0,
+    harvestYieldId: 1112,
+    suitableSeasons: ['Summer', 'Autumn'],
+    duration: 4,
+    isColdResistant: false,
+    description: 'Textile Gold. Used for Fabric.',
+    color: 'text-slate-200',
+    requiredAreaId: 2
+  },
+  {
+    id: 113,
+    name: 'Coffee Bean Seed',
+    emoji: '☕',
+    buyPrice: 200,
+    sellPrice: 0,
+    harvestYieldId: 1113,
+    suitableSeasons: ['Spring', 'Summer'],
+    duration: 5,
+    isColdResistant: false,
+    description: 'High value. Needs warm climate.',
+    color: 'text-stone-800',
+    requiredAreaId: 2
+  },
+  {
+    id: 114,
+    name: 'Grape Vine',
+    emoji: '🍇',
+    buyPrice: 180,
+    sellPrice: 0,
+    harvestYieldId: 1114,
+    suitableSeasons: ['Autumn'],
+    duration: 4,
+    isColdResistant: false,
+    description: 'Luxury fruit. Used for Wine.',
+    color: 'text-purple-600',
+    requiredAreaId: 2
+  },
+
+  // --- OTHER BASICS ---
+  {
+    id: 106,
+    name: 'Tomato Seed',
+    emoji: '🍅',
+    buyPrice: 35,
+    sellPrice: 0,
+    harvestYieldId: 1106,
+    suitableSeasons: ['Summer'],
+    duration: 3,
+    isColdResistant: false,
+    description: 'Summer lover. Needs 3 months.',
+    color: 'text-red-500',
+    requiredAreaId: 0
+  },
+  {
+    id: 103,
+    name: 'Watermelon Seed',
+    emoji: '🍉',
+    buyPrice: 50,
+    sellPrice: 0,
+    harvestYieldId: 1103,
+    suitableSeasons: ['Summer'],
+    duration: 4,
+    isColdResistant: false,
+    description: 'Giant fruit. Needs 4 months.',
+    color: 'text-red-500',
+    requiredAreaId: 0
   },
   {
     id: 108,
@@ -121,10 +217,11 @@ export const CROPS: Crop[] = [
     sellPrice: 0,
     harvestYieldId: 1108,
     suitableSeasons: ['Autumn'],
-    duration: 4, // Realism: ~100-120 days
+    duration: 4,
     isColdResistant: false,
     description: 'Autumn harvest. Needs 4 months.',
-    color: 'text-orange-600'
+    color: 'text-orange-600',
+    requiredAreaId: 0
   },
   {
     id: 102,
@@ -134,124 +231,47 @@ export const CROPS: Crop[] = [
     sellPrice: 0,
     harvestYieldId: 1102,
     suitableSeasons: ['Autumn'],
-    duration: 5, // Realism: Overwinters (Autumn -> Summer)
+    duration: 5,
     isColdResistant: true,
     isHeatSensitive: true,
     description: 'Long growth. Needs 5 months.',
-    color: 'text-amber-400'
+    color: 'text-amber-400',
+    requiredAreaId: 0
   },
   {
     id: GOLDEN_APPLE_ID,
     name: 'Golden Apple Seed',
     emoji: '🍎',
     buyPrice: 10000,
-    sellPrice: 0, // Seed has no sell price, Fruit does
+    sellPrice: 0,
     harvestYieldId: GOLDEN_APPLE_FRUIT_ID,
     suitableSeasons: ['Spring', 'Summer', 'Autumn', 'Winter'],
-    duration: 3, // 1 Quarter
+    duration: 3,
     isColdResistant: true,
     description: 'Plant to grow Golden Apples.',
     color: 'text-yellow-400',
-    emojiClass: 'filter hue-rotate-[60deg] brightness-125 saturate-150'
+    emojiClass: 'filter hue-rotate-[60deg] brightness-125 saturate-150',
+    requiredAreaId: 3
   },
 
   // --- PRODUCE (Not Buyable) ---
-  {
-    id: 1104,
-    name: 'Spinach',
-    emoji: '🥬',
-    buyPrice: 0,
-    sellPrice: 45,
-    suitableSeasons: [],
-    duration: 0,
-    isColdResistant: true,
-    description: 'Fresh spinach leaves.',
-    color: 'text-green-600'
-  },
-  {
-    id: 1105,
-    name: 'Strawberry',
-    emoji: '🍓',
-    buyPrice: 0,
-    sellPrice: 160,
-    suitableSeasons: [],
-    duration: 0,
-    isColdResistant: false,
-    description: 'Sweet, ripe strawberries.',
-    color: 'text-red-600'
-  },
-  {
-    id: 1101,
-    name: 'Corn',
-    emoji: '🌽',
-    buyPrice: 0,
-    sellPrice: 110,
-    suitableSeasons: [],
-    duration: 0,
-    isColdResistant: false,
-    description: 'A fresh cob of corn.',
-    color: 'text-yellow-500'
-  },
-  {
-    id: 1106,
-    name: 'Tomato',
-    emoji: '🍅',
-    buyPrice: 0,
-    sellPrice: 100,
-    suitableSeasons: [],
-    duration: 0,
-    isColdResistant: false,
-    description: 'Juicy red tomato.',
-    color: 'text-red-500'
-  },
-  {
-    id: 1103,
-    name: 'Watermelon',
-    emoji: '🍉',
-    buyPrice: 0,
-    sellPrice: 180,
-    suitableSeasons: [],
-    duration: 0,
-    isColdResistant: false,
-    description: 'Heavy and sweet watermelon.',
-    color: 'text-red-500'
-  },
-  {
-    id: 1107,
-    name: 'Potato',
-    emoji: '🥔',
-    buyPrice: 0,
-    sellPrice: 60,
-    suitableSeasons: [],
-    duration: 0,
-    isColdResistant: true,
-    description: 'Starchy potato.',
-    color: 'text-amber-700'
-  },
-  {
-    id: 1108,
-    name: 'Pumpkin',
-    emoji: '🎃',
-    buyPrice: 0,
-    sellPrice: 160,
-    suitableSeasons: [],
-    duration: 0,
-    isColdResistant: false,
-    description: 'Perfect for carving or pie.',
-    color: 'text-orange-600'
-  },
-  {
-    id: 1102,
-    name: 'Wheat',
-    emoji: '🌾',
-    buyPrice: 0,
-    sellPrice: 150,
-    suitableSeasons: [],
-    duration: 0,
-    isColdResistant: true,
-    description: 'Golden grains.',
-    color: 'text-amber-400'
-  },
+  { id: 1104, name: 'Spinach', emoji: '🥬', buyPrice: 0, sellPrice: 45, suitableSeasons: [], duration: 0, isColdResistant: true, description: 'Fresh spinach leaves.', color: 'text-green-600' },
+  { id: 1105, name: 'Strawberry', emoji: '🍓', buyPrice: 0, sellPrice: 160, suitableSeasons: [], duration: 0, isColdResistant: false, description: 'Sweet, ripe strawberries.', color: 'text-red-600' },
+  { id: 1101, name: 'Corn', emoji: '🌽', buyPrice: 0, sellPrice: 110, suitableSeasons: [], duration: 0, isColdResistant: false, description: 'A fresh cob of corn.', color: 'text-yellow-500' },
+  { id: 1106, name: 'Tomato', emoji: '🍅', buyPrice: 0, sellPrice: 100, suitableSeasons: [], duration: 0, isColdResistant: false, description: 'Juicy red tomato.', color: 'text-red-500' },
+  { id: 1103, name: 'Watermelon', emoji: '🍉', buyPrice: 0, sellPrice: 180, suitableSeasons: [], duration: 0, isColdResistant: false, description: 'Heavy and sweet watermelon.', color: 'text-red-500' },
+  { id: 1107, name: 'Potato', emoji: '🥔', buyPrice: 0, sellPrice: 60, suitableSeasons: [], duration: 0, isColdResistant: true, description: 'Starchy potato.', color: 'text-amber-700' },
+  { id: 1108, name: 'Pumpkin', emoji: '🎃', buyPrice: 0, sellPrice: 160, suitableSeasons: [], duration: 0, isColdResistant: false, description: 'Perfect for carving or pie.', color: 'text-orange-600' },
+  { id: 1102, name: 'Wheat', emoji: '🌾', buyPrice: 0, sellPrice: 150, suitableSeasons: [], duration: 0, isColdResistant: true, description: 'Golden grains.', color: 'text-amber-400' },
+  
+  // New Industrial Produce
+  { id: 1109, name: 'Soybeans', emoji: '🌿', buyPrice: 0, sellPrice: 220, suitableSeasons: [], duration: 0, isColdResistant: false, description: 'Raw soybeans.', color: 'text-green-700' },
+  { id: 1110, name: 'Sunflowers', emoji: '🌻', buyPrice: 0, sellPrice: 200, suitableSeasons: [], duration: 0, isColdResistant: false, description: 'Full of seeds.', color: 'text-yellow-600' },
+  { id: 1111, name: 'Sugar Cane', emoji: '🎋', buyPrice: 0, sellPrice: 250, suitableSeasons: [], duration: 0, isColdResistant: false, description: 'Sweet raw cane.', color: 'text-emerald-400' },
+  { id: 1112, name: 'Raw Cotton', emoji: '☁️', buyPrice: 0, sellPrice: 400, suitableSeasons: [], duration: 0, isColdResistant: false, description: 'Fluffy cotton balls.', color: 'text-slate-200' },
+  { id: 1113, name: 'Coffee Beans', emoji: '☕', buyPrice: 0, sellPrice: 550, suitableSeasons: [], duration: 0, isColdResistant: false, description: 'Aromatic raw beans.', color: 'text-stone-800' },
+  { id: 1114, name: 'Grapes', emoji: '🍇', buyPrice: 0, sellPrice: 480, suitableSeasons: [], duration: 0, isColdResistant: false, description: 'Bunches of grapes.', color: 'text-purple-600' },
+
   {
     id: GOLDEN_APPLE_FRUIT_ID,
     name: 'Golden Apple',
