@@ -17,14 +17,14 @@ interface FactoryProps {
   onStartJob: (recipeId: number) => void;
   onCollectJob: (jobId: string) => void;
   onBuySlot: () => void;
+  t: (key: string) => string;
 }
 
 export const Factory: React.FC<FactoryProps> = ({ 
     isOpen, onClose, inventory, money, activeJobs, factorySlots, 
     factoryHoppers, hasConveyor,
-    onStartJob, onCollectJob, onBuySlot 
+    onStartJob, onCollectJob, onBuySlot, t
 }) => {
-  // Force re-render periodically to update progress bars smoothly
   const [, setTick] = useState(0);
   useEffect(() => {
       const interval = setInterval(() => setTick(t => t + 1), 100);
@@ -58,20 +58,13 @@ export const Factory: React.FC<FactoryProps> = ({
                  <div>
                      <h1 className="text-3xl font-black text-white flex items-center gap-3 tracking-wide">
                          <FactoryIcon className="w-8 h-8 text-cyan-400" /> 
-                         TECH BARN <span className="text-xs bg-cyan-500 text-slate-900 px-2 py-0.5 rounded font-bold tracking-normal">LVL {factorySlots}</span>
+                         {t('TECH_BARN')} <span className="text-xs bg-cyan-500 text-slate-900 px-2 py-0.5 rounded font-bold tracking-normal">LVL {factorySlots}</span>
                      </h1>
                      <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Automated Processing Unit</p>
                  </div>
              </div>
              
              <div className="flex items-center gap-6">
-                 <div className="flex flex-col items-end">
-                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Power</span>
-                     <div className="flex items-center gap-1 text-cyan-400 font-black">
-                         <Zap className="w-4 h-4 fill-current" /> 100%
-                     </div>
-                 </div>
-                 <div className="h-8 w-px bg-slate-700"></div>
                  <div className="flex flex-col items-end">
                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Funds</span>
                      <span className="text-xl font-black text-white">${money}</span>
@@ -86,7 +79,7 @@ export const Factory: React.FC<FactoryProps> = ({
             <div className="w-1/3 bg-slate-800/50 border-r border-slate-700 flex flex-col">
                 <div className="p-4 bg-slate-800 border-b border-slate-700">
                     <h2 className="font-black text-slate-300 uppercase tracking-wide text-sm flex items-center gap-2">
-                        <Settings className="w-4 h-4" /> Production Blueprints
+                        <Settings className="w-4 h-4" /> {t('PRODUCTION_BLUEPRINTS')}
                     </h2>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -123,7 +116,7 @@ export const Factory: React.FC<FactoryProps> = ({
                                          REQ: <span className="w-4 h-4 inline-block"><ItemIcon name={inputItem.iconKey} /></span> x{recipe.inputCount}
                                      </div>
                                      <span className={`text-xs font-black ${canAfford ? 'text-white' : 'text-red-400'}`}>
-                                         Have: {owned}
+                                         {t('OWNED')}: {owned}
                                      </span>
                                 </div>
 
@@ -136,7 +129,7 @@ export const Factory: React.FC<FactoryProps> = ({
                                             : 'bg-slate-800 text-slate-500 cursor-not-allowed'}
                                     `}
                                 >
-                                    {!hasSpace ? 'Lines Full' : !canAfford ? 'Insufficient Input' : 'Start Job'}
+                                    {!hasSpace ? t('LINES_FULL') : !canAfford ? t('INSUFFICIENT_INPUT') : t('START_JOB')}
                                 </button>
                             </div>
                         );
@@ -146,7 +139,7 @@ export const Factory: React.FC<FactoryProps> = ({
 
             {/* Right: Active Lines */}
             <div className="flex-1 bg-slate-900 p-8 overflow-y-auto relative flex">
-                 {/* Conveyor Background (Right Side) */}
+                 {/* Conveyor Background */}
                  {hasConveyor && (
                      <div className="absolute right-0 top-0 bottom-0 w-24 bg-slate-950 border-l border-slate-800 flex flex-col items-center justify-center z-20 shadow-2xl">
                          <div className="absolute inset-0 opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9InAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgMEw0MCA0ME0wIDQwTDQwIDAiIHN0cm9rZT0iIzIyMiIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI3ApIi8+PC9zdmc+')] animate-[slide-down_2s_linear_infinite]"></div>
@@ -157,20 +150,13 @@ export const Factory: React.FC<FactoryProps> = ({
                      </div>
                  )}
 
-                 {/* Conveyor Floor Texture */}
-                 <div className="absolute inset-0 opacity-5 pointer-events-none" 
-                      style={{ 
-                          backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 10px, #222 10px, #222 20px)' 
-                      }}>
-                 </div>
-
                  <div className="flex-1 z-10">
                      <h2 className="font-black text-slate-500 uppercase tracking-widest mb-6 flex items-center gap-2 relative z-10">
                         <Hammer className="w-5 h-5" /> Manufacturing Floor
                      </h2>
 
                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 relative z-10 pr-8">
-                         {/* Slots (Active + Empty) */}
+                         {/* Slots */}
                          {Array.from({ length: factorySlots }).map((_, idx) => {
                              const job = activeJobs.find(j => j.slotIndex === idx);
                              const hasHopper = factoryHoppers[idx];
@@ -179,7 +165,6 @@ export const Factory: React.FC<FactoryProps> = ({
                                  const recipe = RECIPES.find(r => r.id === job.recipeId);
                                  const outputItem = recipe ? CROPS.find(c => c.id === recipe.outputItemId) : null;
                                  
-                                 // Real-time progress calculation
                                  const totalDuration = job.endTime - job.startTime;
                                  const elapsed = now - job.startTime;
                                  const pct = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
@@ -194,7 +179,6 @@ export const Factory: React.FC<FactoryProps> = ({
                                              </div>
                                          )}
 
-                                         {/* Progress Glow */}
                                          <div className={`absolute inset-0 transition-opacity duration-500 rounded-2xl ${isFinished ? 'bg-emerald-500/10' : 'bg-cyan-500/5'}`}></div>
                                          
                                          <div className="flex justify-between items-start mb-6 relative z-10">
@@ -208,7 +192,7 @@ export const Factory: React.FC<FactoryProps> = ({
                                                  <div>
                                                      <h3 className="font-black text-white text-lg">{recipe?.name}</h3>
                                                      <p className="text-xs font-mono text-cyan-400">
-                                                         {isFinished ? 'PROCESSING COMPLETE' : `RUNNING... ${(Math.max(0, (job.endTime - now)/1000)).toFixed(1)}s`}
+                                                         {isFinished ? t('COMPLETE') : `${t('PROCESSING')} ${(Math.max(0, (job.endTime - now)/1000)).toFixed(1)}s`}
                                                      </p>
                                                  </div>
                                              </div>
@@ -217,29 +201,22 @@ export const Factory: React.FC<FactoryProps> = ({
                                                     onClick={() => onCollectJob(job.id)}
                                                     className="bg-emerald-500 hover:bg-emerald-400 text-white px-6 py-2 rounded-lg font-black text-xs uppercase tracking-wide shadow-[0_0_20px_rgba(16,185,129,0.4)] animate-bounce"
                                                  >
-                                                     Collect
+                                                     {t('COLLECT')}
                                                  </button>
                                              ) : (
                                                  <Settings className={`w-6 h-6 text-slate-600 ${!isFinished ? 'animate-spin' : ''}`} />
                                              )}
                                          </div>
 
-                                         {/* Progress Bar Container */}
                                          <div className="h-4 bg-slate-900 rounded-full overflow-hidden border border-slate-700 relative z-10">
                                              <div 
                                                 className={`h-full transition-all duration-100 relative ${isFinished ? 'bg-emerald-500' : 'bg-cyan-500'}`}
                                                 style={{ width: `${pct}%` }}
-                                             >
-                                                 {/* Stripe Pattern Animation */}
-                                                 {!isFinished && (
-                                                     <div className="absolute inset-0 opacity-30 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9InAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgNDBMODAgME0wIDQwTDQwIDBMMCg4MEw4MCAwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9“MTAwJSIgZmlsbD0idXJsKCNwKSIvPjwvc3ZnPg==')] animate-[shimmer_1s_linear_infinite]"></div>
-                                                 )}
-                                             </div>
+                                             ></div>
                                          </div>
                                      </div>
                                  );
                              } else {
-                                 // Empty Slot
                                  return (
                                      <div key={`empty-${idx}`} className="border-2 border-dashed border-slate-700 rounded-2xl p-8 flex flex-col items-center justify-center text-slate-600 bg-slate-800/30 relative mt-4">
                                         {hasHopper && (
@@ -263,7 +240,7 @@ export const Factory: React.FC<FactoryProps> = ({
                                  className="mt-4 border-2 border-dashed border-amber-500/30 bg-amber-500/5 rounded-2xl p-8 flex flex-col items-center justify-center text-amber-500 hover:bg-amber-500/10 hover:border-amber-500/60 transition-all group"
                              >
                                  <Lock className="w-8 h-8 mb-2 group-hover:scale-110 transition-transform" />
-                                 <span className="font-black text-sm uppercase tracking-wider">Initialize New Line</span>
+                                 <span className="font-black text-sm uppercase tracking-wider">{t('NEW_LINE')}</span>
                                  <span className="text-xs font-mono mt-1 opacity-80 group-hover:opacity-100">${SLOT_COST}</span>
                              </button>
                          )}

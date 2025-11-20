@@ -7,9 +7,10 @@ import { ItemIcon } from './Icons';
 interface AlmanacProps {
   isOpen: boolean;
   onClose: () => void;
+  t: (key: string) => string;
 }
 
-export const Almanac: React.FC<AlmanacProps> = ({ isOpen, onClose }) => {
+export const Almanac: React.FC<AlmanacProps> = ({ isOpen, onClose, t }) => {
   if (!isOpen) return null;
   const [activeTab, setActiveTab] = useState<'GUIDE' | 'CROPS'>('GUIDE');
 
@@ -24,7 +25,7 @@ export const Almanac: React.FC<AlmanacProps> = ({ isOpen, onClose }) => {
                <BookOpen className="w-8 h-8 text-amber-600" />
             </div>
             <div>
-                <h2 className="text-3xl font-black text-slate-800">Farm Guide</h2>
+                <h2 className="text-3xl font-black text-slate-800">{t('FARM_GUIDE')}</h2>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">The Seasonal Steward</p>
             </div>
           </div>

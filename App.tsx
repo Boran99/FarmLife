@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { GameState, ToolType, Tile, SeasonType, WeatherType, MarketCandle, OptionType, FinancialOption, OptionHistoryRecord, ProcessingJob, AreaUpgradeType, AreaAutomationConfig, QuestTaskType } from './types';
-import { SEASONS, GRID_SIZE, INITIAL_MONEY, CROPS, LAND_COST, WEATHER_CHANCE, WATER_COST, WATER_AMOUNT, MAX_MOISTURE, EVAPORATION_RATE, AREA_CONFIG, GOLDEN_APPLE_ID, GOLDEN_APPLE_FRUIT_ID, RECIPES, AUTOMATION_COSTS, MONTH_NAMES, TUTORIAL_QUESTS } from './constants';
+import { GameState, ToolType, Tile, SeasonType, WeatherType, MarketCandle, OptionType, FinancialOption, OptionHistoryRecord, ProcessingJob, AreaUpgradeType, AreaAutomationConfig, QuestTaskType, Language } from './types';
+import { SEASONS, GRID_SIZE, INITIAL_MONEY, CROPS, LAND_COST, WEATHER_CHANCE, WATER_COST, WATER_AMOUNT, MAX_MOISTURE, EVAPORATION_RATE, AREA_CONFIG, GOLDEN_APPLE_ID, GOLDEN_APPLE_FRUIT_ID, RECIPES, AUTOMATION_COSTS, MONTH_NAMES, TUTORIAL_QUESTS, TRANSLATIONS } from './constants';
 import { Grid } from './components/Grid';
 import { Header, ActionDock } from './components/GameUI';
 import { Almanac } from './components/Almanac';
@@ -68,6 +68,7 @@ const App: React.FC = () => {
 
   // --- State ---
   const [gameState, setGameState] = useState<GameState>({
+    language: 'EN',
     turn: 0,
     currentMonth: 1,
     season: 'Spring',
@@ -78,33 +79,32 @@ const App: React.FC = () => {
     grid: Array.from({ length: GRID_SIZE }, (_, i) => ({
       id: i,
       state: 'empty',
-      isLocked: i < 12 ? i > 3 : false, 
+      isLocked: false, 
       cropId: null,
       growthProgress: 0,
       isWatered: false,
       moisture: 60
     })),
-    inventory: { 104: 3 }, // Start with 3 Spinach seeds for Quest 1
+    inventory: { 104: 3 }, 
     unlockedAreas: [0], 
     areaNames: { 0: "Main Garden", 1: "East Field", 2: "South Valley", 3: "Golden Orchard" },
     
-    // Automation State
+    isFactoryUnlocked: false,
+    isFarmOSUnlocked: false,
+
     areaAutomation: initialAreaAutomation,
     factoryHoppers: [false, false, false, false],
     hasConveyor: false,
 
-    // Factory State
     view: 'FARM',
     factorySlots: 1,
     activeJobs: [],
 
-    // Market State
     goldenApplePrice: lastPrice,
     marketHistory: initialMarketHistory,
     options: [],
     optionHistory: [],
 
-    // Quest State
     quests: TUTORIAL_QUESTS,
 
     isAlmanacOpen: false,
@@ -119,7 +119,12 @@ const App: React.FC = () => {
   const [toast, setToast] = useState<{msg: string, type: 'error'|'success'|'info'} | null>(null);
   const [isShaking, setIsShaking] = useState(false);
 
-  // --- Helpers ---
+  // --- TRANSLATION HELPER ---
+  const t = useCallback((key: string) => {
+      const entry = TRANSLATIONS[key];
+      return entry ? (gameState.language === 'ZH' ? entry.ZH : entry.EN) : key;
+  }, [gameState.language]);
+
   const showToast = (msg: string, type: 'error'|'success'|'info' = 'info') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
@@ -139,9 +144,11 @@ const App: React.FC = () => {
   // Month Change Toast Effect
   useEffect(() => {
       if (gameState.turn > 0) {
-          showToast(`Welcome to ${MONTH_NAMES[gameState.currentMonth - 1]}!`, 'info');
+          const monthName = MONTH_NAMES[gameState.currentMonth - 1];
+          const welcomeMsg = gameState.language === 'ZH' ? `欢迎来到 ${monthName}!` : `Welcome to ${monthName}!`;
+          showToast(welcomeMsg, 'info');
       }
-  }, [gameState.currentMonth]);
+  }, [gameState.currentMonth, gameState.language]);
 
   // --- QUEST LOGIC ---
   const handleQuestProgress = useCallback((type: QuestTaskType, targetId?: number | string, amount = 1) => {
@@ -153,14 +160,19 @@ const App: React.FC = () => {
               const updatedTasks = quest.tasks.map(task => {
                   if (task.isComplete) return task;
                   if (task.type === type) {
-                      // Check target match if specified
                       if (task.targetId !== undefined && targetId !== undefined && task.targetId != targetId) {
-                          return task; // Mismatch
-                      }
-                      // Special Case: Wait Season needs to match current state, not increment
-                      if (type === 'WAIT_SEASON') {
-                          // This is checked in handleNextMonth mostly, targetId is season name
                           return task; 
+                      }
+                      if (type === 'WAIT_SEASON') {
+                          return task; 
+                      }
+                      if (type === 'HAVE_MONEY') {
+                          const newCurrent = Math.max(task.current, amount); 
+                          if (newCurrent !== task.current) {
+                               questUpdated = true;
+                               return { ...task, current: newCurrent, isComplete: newCurrent >= task.count };
+                          }
+                          return task;
                       }
 
                       const newCurrent = Math.min(task.count, task.current + amount);
@@ -172,10 +184,12 @@ const App: React.FC = () => {
                   return task;
               });
 
-              // Check if all tasks complete
               const allComplete = updatedTasks.every(t => t.isComplete);
               if (allComplete) {
-                   showToast(`Mission Complete: ${quest.title}!`, 'success');
+                   const msg = prev.language === 'ZH' 
+                    ? `任务完成: ${quest.titleZH || quest.title}!`
+                    : `Mission Complete: ${quest.title}!`;
+                   showToast(msg, 'success');
                    questUpdated = true;
                    return { ...quest, tasks: updatedTasks, status: 'COMPLETED' as const };
               }
@@ -187,6 +201,10 @@ const App: React.FC = () => {
           return { ...prev, quests: updatedQuests };
       });
   }, []);
+  
+  useEffect(() => {
+      handleQuestProgress('HAVE_MONEY', undefined, gameState.money);
+  }, [gameState.money, handleQuestProgress]);
 
   const handleClaimQuestReward = (questId: number) => {
       setGameState(prev => {
@@ -199,12 +217,31 @@ const App: React.FC = () => {
               if (q.id === nextQuestId) return { ...q, status: 'ACTIVE' as const };
               return q;
           });
+          
+          let extraUpdates: Partial<GameState> = {};
 
-          showToast(`Claimed $${quest.rewardMoney}!`, 'success');
+          if (quest.rewardType === 'UNLOCK_FEATURE') {
+              if (quest.rewardFeature === 'FACTORY') {
+                  extraUpdates.isFactoryUnlocked = true;
+                  showToast(t('TECH_BARN') + " Unlocked!", 'success');
+              }
+              if (quest.rewardFeature === 'FARM_OS') {
+                  extraUpdates.isFarmOSUnlocked = true;
+                  const currentAuto = prev.areaAutomation[0];
+                  extraUpdates.areaAutomation = {
+                      ...prev.areaAutomation,
+                      [0]: { ...currentAuto, hasIrrigation: true }
+                  }
+                  showToast(t('FARM_OS') + " Installed!", 'success');
+              }
+          }
+
+          showToast(`${t('CLAIM')} ${t('REWARD')}: $${quest.rewardMoney}`, 'success');
           return {
               ...prev,
               money: prev.money + quest.rewardMoney,
-              quests: updatedQuests
+              quests: updatedQuests,
+              ...extraUpdates
           };
       });
   };
@@ -215,7 +252,7 @@ const App: React.FC = () => {
   const handleBuyAreaUpgrade = (areaId: number, type: AreaUpgradeType) => {
       const cost = AUTOMATION_COSTS[type];
       if (gameState.money < cost) {
-          showToast("Insufficient funds!", 'error');
+          showToast(t('INSUFFICIENT_FUNDS') || "Insufficient Funds", 'error');
           return;
       }
       setGameState(prev => {
@@ -230,7 +267,8 @@ const App: React.FC = () => {
               areaAutomation: { ...prev.areaAutomation, [areaId]: config }
           };
       });
-      showToast(`Installed ${type}!`, 'success');
+      handleQuestProgress('INSTALL_UPGRADE', type);
+      showToast(`${t('INSTALLED')} ${type}!`, 'success');
   };
 
   const handleToggleAreaUpgrade = (areaId: number, type: AreaUpgradeType) => {
@@ -285,7 +323,7 @@ const App: React.FC = () => {
           }
           return { ...prev, money: prev.money - cost, ...updates };
       });
-      showToast(`Installed ${type}!`, 'success');
+      showToast(`${t('INSTALLED')} ${type}!`, 'success');
   };
 
 
@@ -295,10 +333,8 @@ const App: React.FC = () => {
           const recipe = RECIPES.find(r => r.id === recipeId);
           if (!recipe) return prev;
           
-          // Determine slot
           let slotToUse = forcedSlotIndex;
           if (slotToUse === undefined) {
-              // Find first empty slot
               for (let i = 0; i < prev.factorySlots; i++) {
                   if (!prev.activeJobs.find(j => j.slotIndex === i)) {
                       slotToUse = i;
@@ -308,13 +344,13 @@ const App: React.FC = () => {
           }
 
           if (slotToUse === undefined || slotToUse >= prev.factorySlots || prev.activeJobs.find(j => j.slotIndex === slotToUse)) {
-              if (forcedSlotIndex === undefined) showToast("No factory slots available!", 'error'); 
+              if (forcedSlotIndex === undefined) showToast(TRANSLATIONS['LINES_FULL']?.[prev.language] || "Lines Full", 'error'); 
               return prev;
           }
 
           const owned = prev.inventory[recipe.inputItemId] || 0;
           if (owned < recipe.inputCount) {
-              if (forcedSlotIndex === undefined) showToast("Not enough materials.", 'error');
+              if (forcedSlotIndex === undefined) showToast(TRANSLATIONS['INSUFFICIENT_INPUT']?.[prev.language] || "Not enough materials", 'error');
               return prev;
           }
 
@@ -349,13 +385,11 @@ const App: React.FC = () => {
           const recipe = RECIPES.find(r => r.id === job.recipeId);
           if (!recipe) return prev;
 
-          // Collect Item
           const newInventory = {
               ...prev.inventory,
               [recipe.outputItemId]: (prev.inventory[recipe.outputItemId] || 0) + recipe.outputCount
           };
 
-          // QUEST UPDATE: Factory Produce
           let questState = prev.quests;
           const activeQuest = prev.quests.find(q => q.status === 'ACTIVE');
           if (activeQuest) {
@@ -370,12 +404,14 @@ const App: React.FC = () => {
              });
              const allComplete = updatedTasks.every(t => t.isComplete);
              const newStatus = allComplete ? 'COMPLETED' : 'ACTIVE';
-             if (allComplete && activeQuest.status !== 'COMPLETED') showToast(`Mission Complete: ${activeQuest.title}!`, 'success');
+             if (allComplete && activeQuest.status !== 'COMPLETED') {
+                const msg = prev.language === 'ZH' ? `任务完成: ${activeQuest.titleZH || activeQuest.title}` : `Mission Complete: ${activeQuest.title}`;
+                showToast(msg, 'success');
+             }
 
              questState = prev.quests.map(q => q.id === activeQuest.id ? { ...q, tasks: updatedTasks, status: newStatus as any } : q);
           }
 
-          // HOPPER LOGIC: Check if we can restart
           let nextJobs = prev.activeJobs.filter(j => j.id !== jobId);
           let inventoryForHopper = newInventory;
           
@@ -383,7 +419,6 @@ const App: React.FC = () => {
           if (hasHopper) {
                const inputOwned = newInventory[recipe.inputItemId] || 0;
                if (inputOwned >= recipe.inputCount) {
-                   // Restart!
                    const now = Date.now();
                    const autoJob: ProcessingJob = {
                         id: Math.random().toString(36).substr(2, 9),
@@ -401,7 +436,10 @@ const App: React.FC = () => {
                }
           }
 
-          if (!prev.hasConveyor) showToast(`Collected ${recipe.outputCount} ${CROPS.find(c => c.id === recipe.outputItemId)?.name}!`, 'success');
+          if (!prev.hasConveyor) {
+              const cropName = CROPS.find(c => c.id === recipe.outputItemId)?.name;
+              showToast(`${t('COLLECT')} ${recipe.outputCount} ${cropName}!`, 'success');
+          }
 
           return {
               ...prev,
@@ -410,7 +448,7 @@ const App: React.FC = () => {
               quests: questState
           };
       });
-  }, []);
+  }, [t]);
 
 
   useEffect(() => {
@@ -427,26 +465,22 @@ const App: React.FC = () => {
                   return job;
               });
 
-              // CONVEYOR LOGIC: Auto-collect finished jobs
               if (prev.hasConveyor) {
                   const finishedJobs = updatedJobs.filter(j => j.isComplete);
                   if (finishedJobs.length > 0) {
                        
                        let currentJobs = updatedJobs;
                        let currentInventory = { ...prev.inventory };
-                       let currentQuests = prev.quests; // Handle auto-collect quests
+                       let currentQuests = prev.quests; 
 
-                       // Process all finished jobs
                        const remainingJobs: ProcessingJob[] = [];
                        
                        for (const job of currentJobs) {
                            if (job.isComplete) {
                                const recipe = RECIPES.find(r => r.id === job.recipeId);
                                if (recipe) {
-                                   // 1. Add output
                                    currentInventory[recipe.outputItemId] = (currentInventory[recipe.outputItemId] || 0) + recipe.outputCount;
                                    
-                                   // Quest Check for Conveyor Auto Collect
                                    const activeQuest = currentQuests.find(q => q.status === 'ACTIVE');
                                    if (activeQuest) {
                                         const updatedTasks = activeQuest.tasks.map(t => {
@@ -457,15 +491,16 @@ const App: React.FC = () => {
                                         });
                                         if (updatedTasks.some(t => t.isComplete !== activeQuest.tasks.find(at => at.description === t.description)?.isComplete)) {
                                              const allComplete = updatedTasks.every(t => t.isComplete);
-                                             if (allComplete) showToast(`Mission Complete: ${activeQuest.title}!`, 'success');
+                                             if (allComplete) {
+                                                 const msg = prev.language === 'ZH' ? `任务完成: ${activeQuest.titleZH}` : `Mission Complete: ${activeQuest.title}`;
+                                                 showToast(msg, 'success');
+                                             }
                                              currentQuests = currentQuests.map(q => q.id === activeQuest.id ? { ...q, tasks: updatedTasks, status: allComplete ? 'COMPLETED' : 'ACTIVE' } : q);
                                         }
                                    }
 
-                                   // 2. Check Hopper
                                    const hasHopper = prev.factoryHoppers[job.slotIndex];
                                    if (hasHopper && (currentInventory[recipe.inputItemId] || 0) >= recipe.inputCount) {
-                                       // Restart
                                        currentInventory[recipe.inputItemId] -= recipe.inputCount;
                                        remainingJobs.push({
                                             id: Math.random().toString(36).substr(2, 9),
@@ -477,7 +512,6 @@ const App: React.FC = () => {
                                        });
                                        updatesRequired = true;
                                    } else {
-                                       // No hopper or no mats, job cleared
                                        updatesRequired = true;
                                    }
                                }
@@ -544,7 +578,7 @@ const App: React.FC = () => {
         options: [...prev.options, newOption]
     }));
     handleQuestProgress('BUY_OPTION', type);
-    showToast(`${type} Option Purchased! Paid 1 Apple.`, 'success');
+    showToast(`${type} Option Purchased!`, 'success');
   };
 
   const handleExerciseOption = (optionId: string) => {
@@ -691,8 +725,6 @@ const App: React.FC = () => {
       if (nextMonth >= 7 && nextMonth <= 9) nextSeason = 'Autumn';
       if (nextMonth >= 10 && nextMonth <= 12) nextSeason = 'Winter';
 
-      // QUEST UPDATE: Check Wait Season
-      // We iterate active quest tasks
       let questState = prev.quests;
       const activeQuest = prev.quests.find(q => q.status === 'ACTIVE');
       if (activeQuest) {
@@ -705,7 +737,10 @@ const App: React.FC = () => {
              return t;
          });
          const allComplete = updatedTasks.every(t => t.isComplete);
-         if (allComplete && activeQuest.status !== 'COMPLETED') showToast(`Mission Complete: ${activeQuest.title}!`, 'success');
+         if (allComplete && activeQuest.status !== 'COMPLETED') {
+             const msg = prev.language === 'ZH' ? `任务完成: ${activeQuest.titleZH}` : `Mission Complete: ${activeQuest.title}`;
+             showToast(msg, 'success');
+         }
          questState = prev.quests.map(q => q.id === activeQuest.id ? { ...q, tasks: updatedTasks, status: allComplete ? 'COMPLETED' : 'ACTIVE' as any } : q);
       }
 
@@ -752,20 +787,16 @@ const App: React.FC = () => {
          }
       }
       
-      // --- FARM AUTOMATION VARIABLES ---
       let moneyChange = 0;
       const inventoryChanges: Record<number, number> = { ...prev.inventory };
       const updatedGrid = prev.grid.map(tile => {
-        // Basic Checks
         if (tile.isLocked) return tile;
 
-        // --- AUTOMATION: DRONE HARVEST (Before Wither/Growth) ---
         const areaId = Math.floor(tile.id / 12);
         const automation = prev.areaAutomation[areaId];
         const crop = CROPS.find(c => c.id === tile.cropId);
 
         if (automation && automation.hasDrone && automation.droneEnabled && tile.state === 'mature' && crop) {
-             // DRONE ACTION
              if (automation.autoSell) {
                  const price = crop.id === GOLDEN_APPLE_ID ? newCandle.close : (CROPS.find(c => c.id === (crop.harvestYieldId || crop.id))?.sellPrice || 0);
                  moneyChange += price;
@@ -777,7 +808,6 @@ const App: React.FC = () => {
              }
         }
 
-        // --- AUTOMATION: SEEDER PLANT (If empty) ---
         if (automation && automation.hasSeeder && automation.seederEnabled && automation.seederSeedId && tile.state === 'empty' && !tilesToDamage.includes(tile.id)) {
              const seedId = automation.seederSeedId;
              const seedCount = inventoryChanges[seedId] || 0;
@@ -795,8 +825,6 @@ const App: React.FC = () => {
                  };
              }
         }
-
-        // --- Standard Tile Logic (Recovery, Damage, Wither, Growth) ---
 
         if (tile.state === 'damaged') {
             if (tile.recoveryTime && tile.recoveryTime > 1) {
@@ -824,7 +852,6 @@ const App: React.FC = () => {
         const currentCrop = CROPS.find(c => c.id === tile.cropId);
         if (!currentCrop) return tile;
 
-        // Rot Logic
         if (tile.state === 'mature' && currentCrop.id === GOLDEN_APPLE_ID) {
             const shelfLife = (tile.shelfLife || 0) + 1;
             if (shelfLife > 9) {
@@ -836,7 +863,6 @@ const App: React.FC = () => {
              return { ...tile, state: 'dead' as const, note: 'Crop rotted. Harvest earlier!', moisture: 0 };
         }
 
-        // Weather Kill Logic
         if (nextSeason === 'Winter' && !currentCrop.isColdResistant) {
           return { 
              ...tile, 
@@ -852,7 +878,6 @@ const App: React.FC = () => {
           };
         }
 
-        // Moisture Logic
         let newMoisture = tile.moisture;
         let hasGrown = false;
 
@@ -865,13 +890,10 @@ const App: React.FC = () => {
            }
         }
 
-        // --- AUTOMATION: IRRIGATION ---
         if (automation && automation.hasIrrigation && automation.irrigationEnabled && nextWeather !== 'Drought') {
-             // Ensure minimum 50% moisture
              if (newMoisture < 50) newMoisture = 50;
         }
 
-        // Weather Effects on Moisture
         if (nextWeather === 'Rainy') newMoisture += 50; 
         if (nextWeather === 'Storm') newMoisture = MAX_MOISTURE;
         if (nextWeather === 'Sunny') newMoisture -= EVAPORATION_RATE; 
@@ -974,25 +996,6 @@ const App: React.FC = () => {
       }));
     };
 
-    if (tile.isLocked) {
-        const areaId = Math.floor(tileId / 12);
-        if (!gameState.unlockedAreas.includes(areaId)) {
-            showToast("Unlock the area first!", "error");
-            return;
-        }
-        if (money >= LAND_COST) {
-            setGameState(prev => ({
-                ...prev,
-                money: prev.money - LAND_COST,
-                grid: prev.grid.map(t => t.id === tileId ? { ...t, isLocked: false, moisture: 50 } : t)
-            }));
-            showToast("New land purchased!", "success");
-        } else {
-            showToast(`Land costs $${LAND_COST}`, "error");
-        }
-        return;
-    }
-
     if (tile.state === 'damaged') {
         showToast(`Land damaged by earthquake. Repairs in ${tile.recoveryTime} months.`, 'error');
         return;
@@ -1079,7 +1082,6 @@ const App: React.FC = () => {
       }
   };
 
-  // If Factory View is active, render ONLY factory
   if (gameState.view === 'FACTORY') {
       return (
           <Factory 
@@ -1094,6 +1096,7 @@ const App: React.FC = () => {
             onStartJob={handleStartJob}
             onCollectJob={handleCollectJob}
             onBuySlot={handleBuyFactorySlot}
+            t={t}
           />
       );
   }
@@ -1118,6 +1121,8 @@ const App: React.FC = () => {
         unlockedAreas={gameState.unlockedAreas}
         activeQuest={activeQuest}
         readyToClaimQuest={readyToClaimQuest}
+        isFactoryUnlocked={gameState.isFactoryUnlocked}
+        language={gameState.language}
         onOpenAlmanac={() => setGameState(p => ({ ...p, isAlmanacOpen: true }))}
         onOpenShop={() => setGameState(p => ({ ...p, isShopOpen: true }))}
         onOpenInventory={() => setGameState(p => ({ ...p, isInventoryOpen: true }))}
@@ -1125,6 +1130,7 @@ const App: React.FC = () => {
         onOpenFactory={() => setGameState(p => ({ ...p, view: 'FACTORY' }))}
         onOpenQuestBoard={() => setGameState(p => ({ ...p, isQuestBoardOpen: true }))}
         onAddDebugMoney={() => addMoney(10000)}
+        t={t}
       />
 
       {/* Main View */}
@@ -1167,12 +1173,17 @@ const App: React.FC = () => {
         season={gameState.season}
         inventory={gameState.inventory}
         currentMonth={gameState.currentMonth}
+        isFarmOSUnlocked={gameState.isFarmOSUnlocked}
         onOpenFarmOS={() => setGameState(p => ({ ...p, isFarmOSOpen: true }))}
+        t={t}
+        toggleLanguage={() => setGameState(p => ({ ...p, language: p.language === 'EN' ? 'ZH' : 'EN' }))}
+        language={gameState.language}
       />
 
       <Almanac 
         isOpen={gameState.isAlmanacOpen} 
         onClose={() => setGameState(p => ({ ...p, isAlmanacOpen: false }))} 
+        t={t}
       />
       
       <Shop 
@@ -1184,12 +1195,14 @@ const App: React.FC = () => {
         inventory={gameState.inventory}
         onSell={handleSellItem}
         unlockedAreas={gameState.unlockedAreas}
+        t={t}
       />
 
       <Inventory
         isOpen={gameState.isInventoryOpen}
         onClose={() => setGameState(p => ({ ...p, isInventoryOpen: false }))}
         inventory={gameState.inventory}
+        t={t}
       />
 
       <StockMarket
@@ -1206,6 +1219,7 @@ const App: React.FC = () => {
         optionHistory={gameState.optionHistory}
         onBuyOption={handleBuyOption}
         onExerciseOption={handleExerciseOption}
+        t={t}
       />
 
       <FarmOS 
@@ -1224,6 +1238,7 @@ const App: React.FC = () => {
          onSetAreaSeederId={handleSetAreaSeederId}
          onBuyFactoryUpgrade={handleBuyFactoryUpgrade}
          onToggleFactoryUpgrade={() => {}}
+         t={t}
       />
 
       <QuestBoard 
@@ -1231,6 +1246,8 @@ const App: React.FC = () => {
         onClose={() => setGameState(p => ({ ...p, isQuestBoardOpen: false }))}
         quests={gameState.quests}
         onClaimReward={handleClaimQuestReward}
+        t={t}
+        language={gameState.language}
       />
     </div>
   );

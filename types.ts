@@ -7,23 +7,25 @@ export enum ToolType {
   NONE = 'NONE',
   SEED = 'SEED',
   WATER = 'WATER',
-  SELL = 'SELL', // Renamed from HARVEST
+  SELL = 'SELL',
   SHOVEL = 'SHOVEL',
 }
 
 export type ItemCategory = 'SEED' | 'PRODUCE' | 'PRODUCT' | 'SPECIAL';
 
+export type Language = 'EN' | 'ZH';
+
 export interface Crop {
   id: number;
   name: string;
-  emoji: string; // Keep for fallback or particle effects
-  iconKey: string; // Key for SVG Icon Map
+  emoji: string; 
+  iconKey: string; 
   category: ItemCategory;
   buyPrice: number;
   sellPrice: number;
   harvestYieldId?: number;
   suitableSeasons: SeasonType[];
-  duration: number; // months to mature
+  duration: number; 
   isColdResistant: boolean;
   isHeatSensitive?: boolean;
   description: string;
@@ -39,16 +41,16 @@ export interface Recipe {
     inputCount: number;
     outputItemId: number;
     outputCount: number;
-    realTimeSeconds: number; // Seconds to process in real-time
+    realTimeSeconds: number; 
     description: string;
 }
 
 export interface ProcessingJob {
     id: string;
     recipeId: number;
-    slotIndex: number; // Which machine slot this job occupies
-    startTime: number; // Timestamp
-    endTime: number; // Timestamp
+    slotIndex: number;
+    startTime: number; 
+    endTime: number; 
     isComplete: boolean;
 }
 
@@ -61,8 +63,8 @@ export interface Tile {
   cropId: number | null;
   growthProgress: number;
   isWatered: boolean;
-  moisture: number; // 0 to 100
-  recoveryTime?: number; // Months until land is repaired
+  moisture: number; 
+  recoveryTime?: number; 
   note?: string;
   shelfLife?: number;
 }
@@ -107,34 +109,48 @@ export interface AreaAutomationConfig {
     irrigationEnabled: boolean;
     hasDrone: boolean;
     droneEnabled: boolean;
-    autoSell: boolean; // If true, Drone sells. If false, Drone harvests to inventory.
+    autoSell: boolean; 
     hasSeeder: boolean;
     seederEnabled: boolean;
-    seederSeedId: number | null; // Which seed to auto-plant
+    seederSeedId: number | null; 
 }
 
 // --- QUEST SYSTEM TYPES ---
-export type QuestTaskType = 'PLANT' | 'WATER' | 'HARVEST' | 'SELL' | 'WAIT_SEASON' | 'UNLOCK_AREA' | 'FACTORY_PRODUCE' | 'BUY_OPTION';
+export type QuestTaskType = 'PLANT' | 'WATER' | 'HARVEST' | 'SELL' | 'WAIT_SEASON' | 'UNLOCK_AREA' | 'FACTORY_PRODUCE' | 'BUY_OPTION' | 'HAVE_MONEY' | 'INSTALL_UPGRADE';
 
 export interface QuestTask {
     description: string;
     type: QuestTaskType;
-    targetId?: number | string; // Item ID, Season Name, Area ID etc.
+    targetId?: number | string; 
     count: number;
     current: number;
     isComplete: boolean;
 }
 
+export type QuestRewardType = 'MONEY' | 'UNLOCK_FEATURE';
+export type QuestRewardFeature = 'FACTORY' | 'FARM_OS';
+
+export interface TutorialStep {
+    textEN: string;
+    textZH: string;
+    iconKey?: string; // Optional icon to show
+}
+
 export interface Quest {
     id: number;
     title: string;
+    titleZH: string;
     description: string;
+    descriptionZH: string;
     tasks: QuestTask[];
     rewardMoney: number;
+    rewardType: QuestRewardType;
+    rewardFeature?: QuestRewardFeature;
     status: 'LOCKED' | 'ACTIVE' | 'COMPLETED' | 'CLAIMED';
 }
 
 export interface GameState {
+  language: Language;
   turn: number;
   currentMonth: number;
   season: SeasonType;
@@ -147,9 +163,13 @@ export interface GameState {
   unlockedAreas: number[];
   areaNames: Record<number, string>;
   
+  // Feature Flags
+  isFactoryUnlocked: boolean;
+  isFarmOSUnlocked: boolean;
+
   // Automation State
   areaAutomation: Record<number, AreaAutomationConfig>;
-  factoryHoppers: boolean[]; // Index corresponds to factory slot
+  factoryHoppers: boolean[]; 
   hasConveyor: boolean;
 
   // Factory State
@@ -171,7 +191,7 @@ export interface GameState {
   isShopOpen: boolean;
   isInventoryOpen: boolean;
   isStockMarketOpen: boolean;
-  isFarmOSOpen: boolean; // New Control Center
+  isFarmOSOpen: boolean; 
   isQuestBoardOpen: boolean;
   
   messages: string[];

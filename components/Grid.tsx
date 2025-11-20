@@ -272,10 +272,7 @@ const Plot: React.FC<PlotProps> = ({ tile, currentSeason, selectedTool, onClick,
     let bgClass = 'bg-[#a1887f]'; 
     let shadowClass = 'shadow-[inset_0_-4px_0_rgba(0,0,0,0.15)]';
 
-    if (tile.isLocked) {
-        bgClass = 'bg-[#d7ccc8] opacity-50';
-        shadowClass = 'shadow-inner';
-    } else if (isDamaged) {
+    if (isDamaged) {
         bgClass = 'bg-[#8d6e63]'; 
     } else if (currentSeason === 'Winter') {
         bgClass = 'bg-[#eceff1]';
@@ -299,15 +296,6 @@ const Plot: React.FC<PlotProps> = ({ tile, currentSeason, selectedTool, onClick,
         >
             <div className="absolute inset-0 flex flex-col items-center justify-center p-1">
                 
-                {tile.isLocked && !isAreaLocked && (
-                    <div className="flex flex-col items-center animate-fade-in scale-75">
-                        <div className="bg-white/60 p-1.5 rounded-full mb-1 backdrop-blur-sm">
-                             <Lock className="w-4 h-4 text-slate-500" />
-                        </div>
-                        <span className="text-[9px] font-black text-slate-500 bg-white/80 px-2 py-0.5 rounded-full shadow-sm">${LAND_COST}</span>
-                    </div>
-                )}
-
                 {isDamaged && (
                     <div className="flex flex-col items-center animate-pulse opacity-80">
                         <span className="text-2xl">🚧</span>
@@ -315,7 +303,7 @@ const Plot: React.FC<PlotProps> = ({ tile, currentSeason, selectedTool, onClick,
                     </div>
                 )}
 
-                {!tile.isLocked && !isDamaged && !isAreaLocked && (
+                {!isDamaged && !isAreaLocked && (
                     <>
                         <div className="transition-transform duration-500 transform hover:scale-110 relative z-10 w-full h-full p-1">
                             {tile.state === 'dead' && <span className="text-2xl grayscale opacity-70 block text-center mt-4">🥀</span>}

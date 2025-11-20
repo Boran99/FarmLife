@@ -18,33 +18,31 @@ interface StockMarketProps {
   optionHistory: OptionHistoryRecord[];
   onBuyOption: (type: 'CALL' | 'PUT') => void;
   onExerciseOption: (optionId: string) => void;
+  t: (key: string) => string;
 }
 
 export const StockMarket: React.FC<StockMarketProps> = ({ 
     isOpen, onClose, currentPrice, marketHistory, money, onBuySeed, 
     onBuyFruit, onSellFruit, fruitInventory,
-    options, optionHistory, onBuyOption, onExerciseOption
+    options, optionHistory, onBuyOption, onExerciseOption, t
 }) => {
   if (!isOpen) return null;
   const [tab, setTab] = useState<'MARKET' | 'HISTORY'>('MARKET');
 
-  const seedPrice = Math.floor(currentPrice * 0.9); // Seeds are 10% cheaper than fruit
+  const seedPrice = Math.floor(currentPrice * 0.9); 
   const canAffordSeed = money >= seedPrice;
   const canAffordFruit = money >= currentPrice;
   const canSellFruit = fruitInventory > 0;
   
-  // Option Logic
-  const canAffordOption = fruitInventory >= 1; // Costs 1 Apple
+  const canAffordOption = fruitInventory >= 1; 
   const optionCostText = "1 Golden Apple";
 
-  // Determine Chart Scale
   const allHighs = marketHistory.map(c => c.high);
   const allLows = marketHistory.map(c => c.low);
   const maxVal = Math.max(...allHighs, 15000) * 1.1;
   const minVal = Math.max(0, Math.min(...allLows) * 0.9);
   const range = maxVal - minVal || 1;
 
-  // Trend
   const lastClose = marketHistory.length > 1 ? marketHistory[marketHistory.length - 2].close : currentPrice;
   const isUp = currentPrice >= lastClose;
 
@@ -59,14 +57,14 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                <TrendingUp className="w-8 h-8 text-yellow-700" />
             </div>
             <div>
-                <h2 className="text-2xl font-black text-slate-800 leading-none">Stalk Market</h2>
-                <p className="text-xs text-slate-500 font-bold">Golden Apple Exchange</p>
+                <h2 className="text-2xl font-black text-slate-800 leading-none">{t('STALK_MARKET')}</h2>
+                <p className="text-xs text-slate-500 font-bold">{t('GOLDEN_EXCHANGE')}</p>
             </div>
           </div>
           
           <div className="flex gap-2">
-              <button onClick={() => setTab('MARKET')} className={`px-4 py-2 rounded-xl text-sm font-black transition-colors ${tab === 'MARKET' ? 'bg-yellow-400 text-yellow-900' : 'bg-transparent text-slate-400 hover:bg-yellow-100'}`}>Market</button>
-              <button onClick={() => setTab('HISTORY')} className={`px-4 py-2 rounded-xl text-sm font-black transition-colors ${tab === 'HISTORY' ? 'bg-yellow-400 text-yellow-900' : 'bg-transparent text-slate-400 hover:bg-yellow-100'}`}>History</button>
+              <button onClick={() => setTab('MARKET')} className={`px-4 py-2 rounded-xl text-sm font-black transition-colors ${tab === 'MARKET' ? 'bg-yellow-400 text-yellow-900' : 'bg-transparent text-slate-400 hover:bg-yellow-100'}`}>{t('MARKET')}</button>
+              <button onClick={() => setTab('HISTORY')} className={`px-4 py-2 rounded-xl text-sm font-black transition-colors ${tab === 'HISTORY' ? 'bg-yellow-400 text-yellow-900' : 'bg-transparent text-slate-400 hover:bg-yellow-100'}`}>{t('HISTORY')}</button>
           </div>
 
           <button onClick={onClose} className="p-2 hover:bg-yellow-100 rounded-full transition text-slate-400 hover:text-yellow-600 ml-4">
@@ -78,23 +76,22 @@ export const StockMarket: React.FC<StockMarketProps> = ({
         <div className="flex-1 bg-slate-50 overflow-y-auto">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
                 
-                {/* LEFT: Chart & Spot Market (Span 2) */}
+                {/* LEFT: Chart & Spot Market */}
                 <div className="lg:col-span-2 flex flex-col gap-4">
                     {/* Chart Card */}
                     <div className="bg-slate-900 text-white p-4 rounded-3xl shadow-lg">
                         <div className="flex justify-between items-end mb-4 border-b border-slate-700 pb-2">
                             <div className="flex flex-col">
-                                <span className="text-xs font-bold text-slate-400 uppercase">Spot Price (Fruit)</span>
+                                <span className="text-xs font-bold text-slate-400 uppercase">{t('PRICE')}</span>
                                 <span className={`text-4xl font-black drop-shadow-lg flex items-center ${isUp ? 'text-green-400' : 'text-red-400'}`}>
                                     ${currentPrice}
                                     {isUp ? <TrendingUp className="w-6 h-6 ml-2" /> : <TrendingDown className="w-6 h-6 ml-2" />}
                                 </span>
                             </div>
-                            <div className="text-[10px] text-slate-500">Monthly K-Line</div>
                         </div>
 
                         {/* Chart Container */}
-                        <div className="h-64 w-full relative border border-slate-700 bg-slate-800/50 rounded-xl overflow-x-auto overflow-y-hidden no-scrollbar">
+                        <div className="h-64 w-full relative border border-slate-700 bg-slate-800/50 rounded-xl overflow-x-auto overflow-y-hidden">
                             <div className="flex items-end h-full px-2 gap-2 min-w-max">
                                 {marketHistory.map((candle, idx) => {
                                     const isGreen = candle.close >= candle.open;
@@ -111,9 +108,6 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                                                 <div className={`absolute w-full ${isGreen ? 'bg-green-500' : 'bg-red-500'} border border-slate-900`}
                                                     style={{ height: `${Math.max(1, (bodyHeight / heightPct) * 100)}%`, bottom: `${((bodyBottom - bottomPct) / heightPct) * 100}%` }}></div>
                                             </div>
-                                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-700 text-white text-[8px] p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 whitespace-nowrap">
-                                                O:{candle.open} C:{candle.close}
-                                            </div>
                                         </div>
                                     );
                                 })}
@@ -124,18 +118,17 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                     {/* Trading Floor */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         
-                        {/* Spot Market (Fruit) */}
+                        {/* Spot Market */}
                         <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-3">
                              <div className="flex items-center gap-3 border-b border-slate-100 pb-2">
                                 <div className="bg-yellow-100 p-2 rounded-xl text-xl w-12 h-12">
                                     <ItemIcon name="Golden Apple" />
                                 </div>
                                 <div>
-                                    <h3 className="font-black text-slate-800">Spot Market</h3>
-                                    <p className="text-[10px] text-slate-400 font-bold">Trade Fruit directly</p>
+                                    <h3 className="font-black text-slate-800">{t('GOLD_APPLE_MARKET')}</h3>
                                 </div>
                                 <div className="ml-auto flex flex-col items-end">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold">My Apples</span>
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold">{t('MY_APPLES')}</span>
                                     <span className="text-lg font-black text-slate-700">{fruitInventory}</span>
                                 </div>
                              </div>
@@ -147,7 +140,7 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                                     ${canAffordFruit ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-100 text-slate-300'}
                                     `}
                                 >
-                                    <TrendingUp className="w-3 h-3" /> Buy
+                                    <TrendingUp className="w-3 h-3" /> {t('BUY')}
                                 </button>
                                 <button 
                                     onClick={onSellFruit}
@@ -156,7 +149,7 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                                     ${canSellFruit ? 'bg-rose-100 text-rose-700 hover:bg-rose-200' : 'bg-slate-100 text-slate-300'}
                                     `}
                                 >
-                                    <Coins className="w-3 h-3" /> Sell
+                                    <Coins className="w-3 h-3" /> {t('SELL')}
                                 </button>
                              </div>
                         </div>
@@ -168,13 +161,13 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                                     <ItemIcon name="Golden Apple Seed" />
                                 </div>
                                 <div>
-                                    <h3 className="font-black text-slate-800">Seed Market</h3>
+                                    <h3 className="font-black text-slate-800">{t('SEED_MARKET')}</h3>
                                     <p className="text-[10px] text-slate-400 font-bold">90% of Spot Price</p>
                                 </div>
                              </div>
                              <div className="flex items-center justify-between mt-auto">
                                  <div className="flex flex-col">
-                                     <span className="text-[10px] font-bold text-slate-400 uppercase">Cost</span>
+                                     <span className="text-[10px] font-bold text-slate-400 uppercase">{t('COST')}</span>
                                      <span className="text-lg font-black text-slate-700">${seedPrice}</span>
                                  </div>
                                  <button 
@@ -186,7 +179,7 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                                             : 'bg-slate-200 text-slate-400 cursor-not-allowed'}
                                     `}
                                 >
-                                    <Sprout className="w-4 h-4" /> Buy Seed
+                                    <Sprout className="w-4 h-4" /> {t('BUY')}
                                 </button>
                              </div>
                         </div>
@@ -194,16 +187,15 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                     </div>
                 </div>
 
-                {/* RIGHT: Derivatives (Span 1) */}
+                {/* RIGHT: Derivatives */}
                 <div className="flex flex-col gap-4">
                     
                     {/* Action Panel */}
                     <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
                         <h3 className="font-black text-slate-800 mb-1 flex items-center gap-2">
-                           <AlertCircle className="w-4 h-4 text-indigo-500" /> Options
+                           <AlertCircle className="w-4 h-4 text-indigo-500" /> {t('OPTIONS')}
                         </h3>
                         <div className="flex justify-between items-center mb-4">
-                             <p className="text-xs text-slate-400 font-bold">Expire Next Month</p>
                              <div className="text-[10px] bg-slate-100 px-2 py-1 rounded-lg font-bold text-slate-600">
                                 Cost: {optionCostText}
                              </div>
@@ -220,12 +212,11 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                             >
                                 <div className="flex justify-between items-start mb-1">
                                     <span className="font-black text-emerald-700 flex items-center gap-1">
-                                        <ShieldCheck className="w-4 h-4" /> Put (Insurance)
+                                        <ShieldCheck className="w-4 h-4" /> {t('PUT_OPTION')}
                                     </span>
-                                    <span className="text-[10px] bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded">Defensive</span>
                                 </div>
-                                <p className="text-[10px] text-emerald-600 font-bold leading-tight">
-                                    Sell 1 Apple @ <span className="text-emerald-800">${currentPrice}</span> next month.
+                                <p className="text-[10px] font-medium text-emerald-600 opacity-80 mt-1 leading-tight">
+                                    {t('OPTION_DESC_PUT')}
                                 </p>
                             </button>
 
@@ -239,12 +230,11 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                             >
                                 <div className="flex justify-between items-start mb-1">
                                     <span className="font-black text-rose-700 flex items-center gap-1">
-                                        <Rocket className="w-4 h-4" /> Call (Order)
+                                        <Rocket className="w-4 h-4" /> {t('CALL_OPTION')}
                                     </span>
-                                    <span className="text-[10px] bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded">Aggressive</span>
                                 </div>
-                                <p className="text-[10px] text-rose-600 font-bold leading-tight">
-                                    Buy 1 Apple @ <span className="text-rose-800">${currentPrice}</span> next month.
+                                <p className="text-[10px] font-medium text-rose-600 opacity-80 mt-1 leading-tight">
+                                    {t('OPTION_DESC_CALL')}
                                 </p>
                             </button>
                         </div>
@@ -256,15 +246,12 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                          
                          {options.length === 0 ? (
                              <div className="flex flex-col items-center justify-center h-32 text-slate-400">
-                                 <p className="text-xs font-bold">No active contracts.</p>
+                                 <p className="text-xs font-bold">{t('NO_CONTRACTS')}</p>
                              </div>
                          ) : (
                              <div className="space-y-2">
                                  {options.map(opt => {
                                      const isCall = opt.type === 'CALL';
-                                     // Calc Profit per unit:
-                                     // Call: Profit if Market > Strike.
-                                     // Put: Profit if Strike > Market.
                                      const diffPerUnit = isCall 
                                         ? currentPrice - opt.strikePrice 
                                         : opt.strikePrice - currentPrice;
@@ -279,13 +266,13 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                                                     {opt.type} @ ${opt.strikePrice}
                                                 </span>
                                                 <span className="text-[10px] text-slate-400 font-bold">
-                                                    x{opt.contractSize} Units
+                                                    x{opt.contractSize}
                                                 </span>
                                             </div>
                                             
                                             <div className="flex justify-between items-center">
                                                 <div className="flex flex-col">
-                                                    <span className="text-[10px] font-bold text-slate-400 uppercase">Value</span>
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase">{t('PROFIT')}</span>
                                                     <span className={`text-sm font-black ${isProfitable ? 'text-green-500' : 'text-slate-300'}`}>
                                                         ${Math.max(0, totalProfit)}
                                                     </span>
@@ -299,7 +286,7 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                                                             : 'bg-slate-100 text-slate-300 cursor-not-allowed'}
                                                     `}
                                                 >
-                                                    {isProfitable ? 'EXERCISE' : 'WAIT'}
+                                                    {isProfitable ? t('EXERCISE') : t('WAIT')}
                                                 </button>
                                             </div>
                                         </div>
@@ -319,7 +306,6 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                     <div className="flex flex-col items-center justify-center h-full text-slate-400 opacity-50">
                         <History className="w-16 h-16 mb-4" />
                         <h3 className="text-xl font-black">No History</h3>
-                        <p className="font-bold text-sm">Exercised options will appear here.</p>
                     </div>
                 ) : (
                     <div className="space-y-3 max-w-3xl mx-auto">
@@ -337,7 +323,7 @@ export const StockMarket: React.FC<StockMarketProps> = ({
                                      </div>
                                  </div>
                                  <div className="text-right">
-                                     <p className="text-[10px] text-slate-400 uppercase font-bold">Profit</p>
+                                     <p className="text-[10px] text-slate-400 uppercase font-bold">{t('PROFIT')}</p>
                                      <p className="text-green-500 font-black text-xl">+${rec.profit}</p>
                                  </div>
                              </div>

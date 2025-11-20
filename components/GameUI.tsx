@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { SeasonType, ToolType, WeatherType, Quest } from '../types';
-import { SEASONS, SEASON_CONFIG, CROPS, WEATHER_CONFIG, MONTH_NAMES } from '../constants';
-import { BookOpen, Sprout, Droplets, Axe, Shovel, Coins, ArrowRight, Store, Backpack, TrendingUp, PlusCircle, Lock, Factory as FactoryIcon, Monitor, ClipboardCheck, Trophy } from 'lucide-react';
+import { SeasonType, ToolType, WeatherType, Quest, Language } from '../types';
+import { SEASONS, SEASON_CONFIG, CROPS, WEATHER_CONFIG, MONTH_NAMES, TRANSLATIONS } from '../constants';
+import { BookOpen, Sprout, Droplets, Axe, Shovel, Coins, ArrowRight, Store, Backpack, TrendingUp, PlusCircle, Lock, Factory as FactoryIcon, Monitor, ClipboardCheck, Trophy, Globe } from 'lucide-react';
 import { ItemIcon } from './Icons';
 
 // --- Header (HUD) ---
@@ -16,6 +16,8 @@ interface HeaderProps {
   unlockedAreas: number[];
   activeQuest?: Quest;
   readyToClaimQuest?: Quest;
+  isFactoryUnlocked: boolean;
+  language: Language;
   onOpenAlmanac: () => void;
   onOpenShop: () => void;
   onOpenInventory: () => void;
@@ -23,11 +25,12 @@ interface HeaderProps {
   onOpenFactory: () => void;
   onOpenQuestBoard: () => void;
   onAddDebugMoney: () => void;
+  t: (key: string) => string;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
-    season, weather, turn, money, currentMonth, unlockedAreas, activeQuest, readyToClaimQuest,
-    onOpenAlmanac, onOpenShop, onOpenInventory, onOpenStockMarket, onOpenFactory, onOpenQuestBoard, onAddDebugMoney
+    season, weather, turn, money, currentMonth, unlockedAreas, activeQuest, readyToClaimQuest, isFactoryUnlocked, language,
+    onOpenAlmanac, onOpenShop, onOpenInventory, onOpenStockMarket, onOpenFactory, onOpenQuestBoard, onAddDebugMoney, t
 }) => {
   const weatherConfig = WEATHER_CONFIG[weather];
   const WeatherIcon = weatherConfig.icon;
@@ -65,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
               <Coins className="w-6 h-6 text-amber-500" />
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">My Farm</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('MY_FARM')}</span>
               <span className="text-2xl font-black text-slate-700 leading-none">${money}</span>
             </div>
             <button 
@@ -82,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={onOpenShop}
                 className="flex-1 bg-rose-400 hover:bg-rose-500 text-white py-2 px-4 rounded-2xl shadow-lg shadow-rose-200 flex items-center justify-center gap-2 font-bold transition-all active:scale-95 border-2 border-white/20"
              >
-                <Store className="w-4 h-4" /> Shop
+                <Store className="w-4 h-4" /> {t('SHOP')}
              </button>
           </div>
           
@@ -94,10 +97,10 @@ export const Header: React.FC<HeaderProps> = ({
               >
                   <div className="flex items-center gap-2 mb-1">
                       <Trophy className="w-4 h-4 text-yellow-200" />
-                      <span className="text-[10px] font-black uppercase tracking-wider text-green-100">Reward Ready!</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-green-100">{t('REWARD_READY')}</span>
                   </div>
-                  <p className="text-xs font-bold leading-tight">Mission Complete</p>
-                  <div className="mt-1 text-[10px] bg-green-700/30 inline-block px-2 py-0.5 rounded">Click to Claim</div>
+                  <p className="text-xs font-bold leading-tight">{t('MISSION_COMPLETE')}</p>
+                  <div className="mt-1 text-[10px] bg-green-700/30 inline-block px-2 py-0.5 rounded">{t('CLICK_TO_CLAIM')}</div>
               </button>
           ) : activeQuest && currentTask ? (
               <button 
@@ -106,9 +109,11 @@ export const Header: React.FC<HeaderProps> = ({
               >
                   <div className="flex items-center gap-2 mb-1">
                       <ClipboardCheck className="w-4 h-4 text-indigo-200" />
-                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-100">Current Goal</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-100">{t('CURRENT_GOAL')}</span>
                   </div>
-                  <p className="text-xs font-bold leading-tight">{currentTask.description}</p>
+                  <p className="text-xs font-bold leading-tight">
+                      {language === 'ZH' && activeQuest.titleZH ? activeQuest.titleZH : currentTask.description}
+                  </p>
                   <div className="mt-2 h-1.5 bg-indigo-800/30 rounded-full overflow-hidden">
                        <div className="h-full bg-indigo-200 transition-all duration-500" style={{ width: `${(currentTask.current / currentTask.count) * 100}%` }}></div>
                   </div>
@@ -148,7 +153,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             <div className="flex flex-col items-start">
                 <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg font-black text-slate-700">Year {year}</span>
+                    <span className="text-lg font-black text-slate-700">{t('YEAR')} {year}</span>
                     <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full w-10 text-center">
                         {MONTH_NAMES[currentMonth - 1]}
                     </span>
@@ -170,22 +175,27 @@ export const Header: React.FC<HeaderProps> = ({
           title="Guide"
         >
           <BookOpen className="w-6 h-6 group-hover:text-amber-600 transition-colors" />
-          <span className="font-black text-sm uppercase tracking-wide text-slate-700 group-hover:text-amber-600">Farm Guide</span>
+          <span className="font-black text-sm uppercase tracking-wide text-slate-700 group-hover:text-amber-600">{t('FARM_GUIDE')}</span>
         </button>
         
         <div className="flex gap-2">
              <button 
-                onClick={onOpenFactory}
-                className="bg-slate-700 hover:bg-slate-800 text-white p-3.5 rounded-2xl shadow-lg shadow-slate-400 border-2 border-white/20 active:scale-95 transition-all"
-                title="Workshop"
+                onClick={isFactoryUnlocked ? onOpenFactory : undefined}
+                disabled={!isFactoryUnlocked}
+                className={`p-3.5 rounded-2xl shadow-lg border-2 border-white/20 transition-all
+                    ${isFactoryUnlocked
+                        ? 'bg-slate-700 hover:bg-slate-800 text-white shadow-slate-400 active:scale-95' 
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'}
+                `}
+                title={isFactoryUnlocked ? "Workshop" : t('UNLOCK_VIA')}
             >
-                <FactoryIcon className="w-6 h-6" />
+                {isFactoryUnlocked ? <FactoryIcon className="w-6 h-6" /> : <Lock className="w-6 h-6 opacity-50" />}
             </button>
 
             <button 
             onClick={onOpenInventory}
             className="bg-orange-400 hover:bg-orange-500 text-white p-3.5 rounded-2xl shadow-lg shadow-orange-200 border-2 border-white/20 active:scale-95 transition-all"
-            title="Backpack"
+            title={t('BACKPACK')}
             >
             <Backpack className="w-6 h-6" />
             </button>
@@ -198,7 +208,7 @@ export const Header: React.FC<HeaderProps> = ({
                     ? 'bg-yellow-400 hover:bg-yellow-500 text-yellow-900 shadow-yellow-200 active:scale-95' 
                     : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'}
             `}
-            title={isMarketUnlocked ? "Stalk Market" : "Unlock Golden Orchard to Access"}
+            title={isMarketUnlocked ? t('STALK_MARKET') : t('UNLOCK_VIA')}
             >
             {isMarketUnlocked ? <TrendingUp className="w-6 h-6" /> : <Lock className="w-6 h-6 opacity-50" />}
             </button>
@@ -221,7 +231,11 @@ interface ActionDockProps {
   season: SeasonType;
   inventory: Record<number, number>;
   currentMonth: number;
+  isFarmOSUnlocked: boolean;
   onOpenFarmOS: () => void;
+  t: (key: string) => string;
+  toggleLanguage: () => void;
+  language: Language;
 }
 
 export const ActionDock: React.FC<ActionDockProps> = ({ 
@@ -234,13 +248,17 @@ export const ActionDock: React.FC<ActionDockProps> = ({
   season,
   inventory,
   currentMonth,
-  onOpenFarmOS
+  isFarmOSUnlocked,
+  onOpenFarmOS,
+  t,
+  toggleLanguage,
+  language
 }) => {
   
   const tools = [
-    { id: ToolType.WATER, icon: Droplets, label: 'Water', color: 'text-blue-500', bg: 'bg-blue-50', activeBg: 'bg-blue-500', activeColor: 'text-white' },
-    { id: ToolType.SELL, icon: Coins, label: 'Sell', color: 'text-emerald-600', bg: 'bg-emerald-50', activeBg: 'bg-emerald-500', activeColor: 'text-white' },
-    { id: ToolType.SHOVEL, icon: Shovel, label: 'Clear', color: 'text-rose-500', bg: 'bg-rose-50', activeBg: 'bg-rose-500', activeColor: 'text-white' },
+    { id: ToolType.WATER, icon: Droplets, label: 'TOOL_WATER', color: 'text-blue-500', bg: 'bg-blue-50', activeBg: 'bg-blue-500', activeColor: 'text-white' },
+    { id: ToolType.SELL, icon: Coins, label: 'TOOL_SELL', color: 'text-emerald-600', bg: 'bg-emerald-50', activeBg: 'bg-emerald-500', activeColor: 'text-white' },
+    { id: ToolType.SHOVEL, icon: Shovel, label: 'TOOL_CLEAR', color: 'text-rose-500', bg: 'bg-rose-50', activeBg: 'bg-rose-500', activeColor: 'text-white' },
   ];
 
   const handleDragStart = (e: React.DragEvent, seedId: number) => {
@@ -250,14 +268,12 @@ export const ActionDock: React.FC<ActionDockProps> = ({
       onSelectSeed(seedId);
   };
 
-  // Filter crops to show only what is in inventory (only seeds have buyPrice > 0, so this check works if they have seeds)
-  // We want to show only seeds in the seed pouch
   const ownedSeeds = CROPS.filter(crop => (inventory[crop.id] || 0) > 0 && crop.category === 'SEED');
 
   return (
     <div className="fixed bottom-8 left-0 right-0 z-30 flex flex-col items-center pointer-events-none font-fredoka">
       
-      {/* Seed Pouch (Pop-up Bubble) */}
+      {/* Seed Pouch */}
       {selectedTool === ToolType.SEED && (
         <div className="pointer-events-auto mb-6 bg-white/95 backdrop-blur-md p-3 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] animate-in slide-in-from-bottom-4 fade-in duration-300 border border-white/50">
             
@@ -292,7 +308,7 @@ export const ActionDock: React.FC<ActionDockProps> = ({
                         <span className="text-xs font-black text-slate-600">x{count}</span>
                         {isRecommended && (
                             <div className="absolute -top-2 -right-2 bg-green-400 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm ring-2 ring-white">
-                            BEST
+                            {t('IN_SEASON')}
                             </div>
                         )}
                     </div>
@@ -303,17 +319,26 @@ export const ActionDock: React.FC<ActionDockProps> = ({
         </div>
       )}
 
-      {/* Main Toolbar - Glass Pill */}
+      {/* Main Toolbar */}
       <div className="pointer-events-auto bg-white/90 backdrop-blur-xl p-2.5 rounded-[2rem] shadow-[0_20px_40px_rgba(0,0,0,0.12)] border border-white/60 flex items-center gap-3 sm:gap-5">
           
-          {/* FarmOS Button (New) */}
+          {/* FarmOS Button */}
           <button
-            onClick={onOpenFarmOS}
-            className="group relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center transition-all duration-200 bg-slate-800 text-green-400 shadow-lg hover:bg-slate-700 active:scale-95 border border-green-900/50"
-            title="FarmOS Control"
+            onClick={isFarmOSUnlocked ? onOpenFarmOS : undefined}
+            disabled={!isFarmOSUnlocked}
+            className={`group relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center transition-all duration-200 border
+                ${isFarmOSUnlocked 
+                    ? 'bg-slate-800 text-green-400 shadow-lg hover:bg-slate-700 active:scale-95 border-green-900/50' 
+                    : 'bg-slate-200 text-slate-400 cursor-not-allowed border-transparent'}
+            `}
+            title={isFarmOSUnlocked ? "FarmOS Control" : t('UNLOCK_VIA')}
           >
-            <Monitor className="w-6 h-6 group-hover:animate-pulse" />
-            <span className="text-[8px] font-bold mt-1">OS</span>
+            {isFarmOSUnlocked ? (
+                <>
+                  <Monitor className="w-6 h-6 group-hover:animate-pulse" />
+                  <span className="text-[8px] font-bold mt-1">OS</span>
+                </>
+            ) : <Lock className="w-6 h-6 opacity-50" />}
           </button>
 
           <div className="w-px h-8 bg-slate-200/50 mx-1"></div>
@@ -329,7 +354,7 @@ export const ActionDock: React.FC<ActionDockProps> = ({
             `}
           >
             <Sprout className={`w-7 h-7 ${selectedTool === ToolType.SEED ? 'fill-current' : ''}`} />
-            <span className="text-[10px] font-bold uppercase mt-1 opacity-90">Bag</span>
+            <span className="text-[10px] font-bold uppercase mt-1 opacity-90">{t('TOOL_BAG')}</span>
           </button>
 
           <div className="w-px h-10 bg-slate-200 mx-1"></div>
@@ -345,6 +370,7 @@ export const ActionDock: React.FC<ActionDockProps> = ({
                   ? `${tool.activeBg} ${tool.activeColor} shadow-lg scale-110 -translate-y-1` 
                   : `${tool.bg} ${tool.color} hover:scale-105 hover:bg-opacity-80`}
               `}
+              title={t(tool.label)}
             >
               <tool.icon className="w-6 h-6" />
             </button>
@@ -352,15 +378,24 @@ export const ActionDock: React.FC<ActionDockProps> = ({
 
           <div className="w-px h-10 bg-slate-200 mx-1"></div>
 
-          {/* Next Month (Big Pill Button) */}
+          {/* Next Month */}
           <button 
             onClick={onNextMonth}
             className="group relative px-6 h-16 sm:h-18 bg-slate-800 hover:bg-slate-900 active:scale-95 rounded-2xl flex flex-col items-center justify-center text-white shadow-xl transition-all"
           >
-            <span className="text-[9px] font-bold opacity-60 uppercase tracking-widest">FINISH</span>
+            <span className="text-[9px] font-bold opacity-60 uppercase tracking-widest">{t('NEXT_MONTH')}</span>
             <div className="flex items-center gap-2 font-black text-lg">
                {MONTH_NAMES[currentMonth - 1]} <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </div>
+          </button>
+
+          {/* Language Switcher */}
+          <button 
+            onClick={toggleLanguage}
+            className="ml-2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/50 hover:bg-white flex items-center justify-center text-slate-500 hover:text-blue-500 transition-colors border border-slate-200 shadow-sm"
+            title="Switch Language"
+          >
+             <span className="font-black text-xs">{language === 'EN' ? 'ZH' : 'EN'}</span>
           </button>
       </div>
 

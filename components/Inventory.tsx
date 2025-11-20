@@ -8,9 +8,10 @@ interface InventoryProps {
   isOpen: boolean;
   onClose: () => void;
   inventory: Record<number, number>;
+  t: (key: string) => string;
 }
 
-export const Inventory: React.FC<InventoryProps> = ({ isOpen, onClose, inventory }) => {
+export const Inventory: React.FC<InventoryProps> = ({ isOpen, onClose, inventory, t }) => {
   if (!isOpen) return null;
 
   const items = Object.entries(inventory)
@@ -19,7 +20,7 @@ export const Inventory: React.FC<InventoryProps> = ({ isOpen, onClose, inventory
       const crop = CROPS.find(c => c.id === Number(id));
       return { ...crop, count, id: Number(id) };
     })
-    .filter(item => item.name); // Filter out unknown items
+    .filter(item => item.name); 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200 font-fredoka">
@@ -32,8 +33,8 @@ export const Inventory: React.FC<InventoryProps> = ({ isOpen, onClose, inventory
                <Backpack className="w-7 h-7 text-orange-600" />
             </div>
             <div>
-                <h2 className="text-2xl font-black text-slate-800">Backpack</h2>
-                <p className="text-xs text-slate-500 font-bold">Your supplies</p>
+                <h2 className="text-2xl font-black text-slate-800">{t('BACKPACK')}</h2>
+                <p className="text-xs text-slate-500 font-bold">{t('OWNED')} Items</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-orange-100 rounded-full transition text-slate-400 hover:text-orange-500">
@@ -47,7 +48,6 @@ export const Inventory: React.FC<InventoryProps> = ({ isOpen, onClose, inventory
                 <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                     <Backpack className="w-16 h-16 mb-4 opacity-20" />
                     <p className="font-bold">Your bag is empty.</p>
-                    <p className="text-xs">Visit the Shop to buy seeds!</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-3 gap-3">
